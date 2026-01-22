@@ -123,7 +123,7 @@ export const UsersApp: React.FC = () => {
             <div className="flex flex-col gap-6 mb-8">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-3xl font-light text-slate-900">User Management <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full ml-2">v2.2 (DEBUG)</span></h1>
+                        <h1 className="text-3xl font-light text-slate-900">User Management</h1>
                         <p className="text-slate-500 mt-1">Manage system access and employee roles</p>
                     </div>
                     <button
