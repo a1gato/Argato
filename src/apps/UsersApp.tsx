@@ -108,14 +108,15 @@ export const UsersApp: React.FC = () => {
         setIsModalOpen(true);
     };
 
-    const filteredUsers = users.filter(user =>
-        user.role !== 'admin' && ( // Hide admin from list
+    // Filter out admins first, then apply search
+    const filteredUsers = users
+        .filter(user => user.role !== 'admin')
+        .filter(user =>
             user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.role.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-    );
+        );
 
     return (
         <div className="p-8 w-full h-full overflow-y-auto">
