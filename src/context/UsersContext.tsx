@@ -54,8 +54,8 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                             name: undefined
                         };
                     }
-                    // Migrate old admin email
-                    if (u.employeeId === 'admin' && u.email === 'admin@os-it-fast.com') {
+                    // Force update admin email
+                    if (u.employeeId === 'admin') {
                         return {
                             ...u,
                             email: 'admin@fastit.com'
