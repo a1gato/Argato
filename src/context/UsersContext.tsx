@@ -43,14 +43,22 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 const parsedUsers = JSON.parse(stored);
                 if (!Array.isArray(parsedUsers)) return [DEFAULT_ADMIN];
 
-                // Migration for old users with 'name' property
+                // Migration for old users
                 return parsedUsers.map((u: any) => {
+                    // Migrate 'name' -> 'firstName'
                     if (u.name && !u.firstName) {
                         return {
                             ...u,
                             firstName: u.name,
                             lastName: '',
-                            name: undefined // remove old property
+                            name: undefined
+                        };
+                    }
+                    // Migrate old admin email
+                    if (u.employeeId === 'admin' && u.email === 'admin@os-it-fast.com') {
+                        return {
+                            ...u,
+                            email: 'admin@fastit.com'
                         };
                     }
                     return u;
