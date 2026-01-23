@@ -32,7 +32,7 @@ export default async function handler(request, response) {
 
         const sheetTitles = (metadataResponse.data.sheets || [])
             .map(s => s.properties.title)
-            .filter(title => title !== 'Fines'); // All salary months
+            .filter(title => title && title !== 'Fines' && !title.startsWith('Pivot Table')); // Exclude Fines and Pivot Tables
 
         // 2. Efficiently Batch Fetch All Ranges
         // Range 0 is Fines, Ranges 1..N are Salary Months
