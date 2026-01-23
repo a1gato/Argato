@@ -31,8 +31,8 @@ export default async function handler(request, response) {
         });
 
         const sheetTitles = (metadataResponse.data.sheets || [])
-            .map(s => s.properties.title)
-            .filter(title => title && title !== 'Fines' && !title.startsWith('Pivot Table')); // Exclude Fines and Pivot Tables
+            .map(s => s.properties?.title)
+            .filter(title => title !== 'Fines'); // All salary months
 
         // 2. Efficiently Batch Fetch All Ranges
         // Range 0 is Fines, Ranges 1..N are Salary Months
@@ -70,15 +70,27 @@ export default async function handler(request, response) {
             const monthName = sheetTitles[i - 1]; // Corresponding month name
 
             if (rows && rows.length > 0) {
-                const monthSalaries = rows.map(row => ({
-                    teacherName: row[0] || '',
-                    month: monthName,
-                    income: row[1] || '0',
-                    bonus: row[2] || '0',
-                    fine: row[3] || '0',
-                    recount: row[4] || '0',
-                    total: row[5] || '0'
-                }));
+                const monthSalaries = rows.map(row => {
+                    const income = row[1] || '0';
+                    // Validation: Income should be numeric (currency or number).
+                    // If it contains text (like a fine reason "Late coming..."), it's likely a misread 
+                    // from a non-salary sheet (like a Pivot Table of fines).
+                    // We check if it has letters. ignoring currency symbols.
+                    const isInvalidIncome = /[a-zA-Z]{3,}/.test(income.replace(/[$,.\s]/g, ''));
+
+                    if (isInvalidIncome) return null;
+
+                    return {
+                        teacherName: row[0] || '',
+                        month: monthName,
+                        income: income,
+                        bonus: row[2] || '0',
+                        fine: row[3] || '0',
+                        recount: row[4] || '0',
+                        total: row[5] || '0'
+                    };
+                }).filter(Boolean); // Remove nulls (invalid rows)
+
                 salaries = salaries.concat(monthSalaries);
             }
         }
