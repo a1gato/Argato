@@ -62,12 +62,20 @@ export const SalaryApp: React.FC = () => {
         setSearchTerm('');
     };
 
+    // Helper for month sorting
+    const getMonthValue = (month: string) => {
+        const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+        const lower = month.toLowerCase();
+        const index = months.findIndex(m => lower.includes(m));
+        return index === -1 ? 99 : index;
+    };
+
     // Filter Logic for Detail View
     const teacherSalaries = data.salaries.filter(s =>
         s.teacherName === selectedTeacher &&
-        // Filter out empty records (where total is 0 or empty)
-        parseCurrency(s.total) !== 0
-    );
+        // Filter out empty records: Show if Total OR Income is non-zero
+        (parseCurrency(s.total) !== 0 || parseCurrency(s.income) !== 0)
+    ).sort((a, b) => getMonthValue(a.month) - getMonthValue(b.month));
 
     const teacherFines = data.fines.filter(f =>
         f.teacherName === selectedTeacher
