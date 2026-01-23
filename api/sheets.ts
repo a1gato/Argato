@@ -31,14 +31,14 @@ export default async function handler(request, response) {
         });
 
         const sheetTitles = (metadataResponse.data.sheets || [])
-            .map(s => s.properties?.title)
-            .filter(title => title !== 'Fines' && !title.startsWith('Pivot Table')); // Exclude Fines and Pivot Tables
+            .map(s => s.properties?.title || '') // Handle undefined titles
+            .filter(title => title && title !== 'Fines' && !title.startsWith('Pivot Table')); // Exclude Fines, Pivot Tables, and empty titles
 
         // 2. Efficiently Batch Fetch All Ranges
         // Range 0 is Fines, Ranges 1..N are Salary Months
         const ranges = [
             "'Fines'!A2:E",
-            ...sheetTitles.map(title => `'${title.replace(/'/g, "''")}'!A2:F`)
+            ...sheetTitles.map(title => `'${(title || '').replace(/'/g, "''")}'!A2:F`)
         ];
 
         const batchResponse = await sheets.spreadsheets.values.batchGet({
@@ -73,14 +73,9 @@ export default async function handler(request, response) {
                 const monthSalaries = rows.map(row => {
                     const income = row[1] || '0';
 
-                    // Improved Validation:
-                    // Relaxed validation to debug missing data
-                    // const letterCount = (income.match(/[a-zA-Z]/g) || []).length;
-                    // if (letterCount > 4) return null;
-
-                    // 2. Must contain at least one digit or be a valid entry
-                    // const hasDigit = /\d/.test(income);
-                    // if (!hasDigit && income !== '0' && income !== '') return null;
+                    // Fully Permissive Parsing: Capture everything that looks like a row
+                    // We only require that it's not a totally empty row (which google api helps with, but we check too)
+                    if (!row || row.length === 0) return null;
 
                     return {
                         teacherName: (row[0] || '').trim(),

@@ -4,7 +4,7 @@ import { fetchSheetData, type Fine, type Salary } from '../services/sheetsServic
 export const SalaryApp: React.FC = () => {
     const [view, setView] = useState<'list' | 'detail'>('list');
     const [selectedTeacher, setSelectedTeacher] = useState<string | null>(null);
-    const [data, setData] = useState<{ fines: Fine[]; salaries: Salary[] }>({ fines: [], salaries: [] });
+    const [data, setData] = useState<{ fines: Fine[]; salaries: Salary[]; debug?: { sheets: string[] } }>({ fines: [], salaries: [] });
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -163,6 +163,15 @@ export const SalaryApp: React.FC = () => {
                                             No teachers found matching "{searchTerm}"
                                         </div>
                                     )}
+
+                                    {/* DEBUG PANEL */}
+                                    <div className="mt-8 p-4 bg-gray-100 rounded-lg border border-gray-200 text-xs font-mono text-gray-600">
+                                        <h4 className="font-bold text-gray-800 mb-2">Debug Info</h4>
+                                        <p><strong>Sheets Loaded:</strong> {data.debug?.sheets?.join(', ') || 'None'}</p>
+                                        <p><strong>Total Salary Records:</strong> {data.salaries.length}</p>
+                                        <p><strong>Total Fines:</strong> {data.fines.length}</p>
+                                        <p><strong>Teachers Found:</strong> {uniqueTeachers.length}</p>
+                                    </div>
                                 </div>
                             )}
 
@@ -242,6 +251,21 @@ export const SalaryApp: React.FC = () => {
                                             </table>
                                         </div>
                                     )}
+
+                                    {/* DEBUG PANEL - DETAIL VIEW */}
+                                    <div className="mt-8 p-4 bg-gray-100 rounded-lg border border-gray-200 text-xs font-mono text-gray-600">
+                                        <h4 className="font-bold text-gray-800 mb-2">Debug Info (Detail View)</h4>
+                                        <p><strong>Selected Teacher:</strong> '{selectedTeacher}'</p>
+                                        <p><strong>Sheets Loaded:</strong> {data.debug?.sheets?.join(', ') || 'None'}</p>
+                                        <p><strong>Total Salary Records:</strong> {data.salaries.length}</p>
+                                        <p><strong>Matching Records Found:</strong> {teacherSalaries.length}</p>
+                                        <div className="mt-2 text-gray-500">
+                                            <p className="font-semibold">First 5 Teachers in Data:</p>
+                                            {Array.from(new Set(data.salaries.map(s => s.teacherName))).slice(0, 5).map(t => (
+                                                <div key={t}>'{t}'</div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </>
