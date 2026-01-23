@@ -19,15 +19,21 @@ interface TeacherSettings {
     showSpecialization: boolean;
 }
 
+interface SalarySettings {
+    showFinesInReport: boolean;
+}
+
 interface SettingsContextType {
     dashboard: DashboardSettings;
     students: StudentSettings;
     users: UserSettings;
     teachers: TeacherSettings;
+    salary: SalarySettings;
     updateDashboardSettings: (settings: Partial<DashboardSettings>) => void;
     updateStudentSettings: (settings: Partial<StudentSettings>) => void;
     updateUserSettings: (settings: Partial<UserSettings>) => void;
     updateTeacherSettings: (settings: Partial<TeacherSettings>) => void;
+    updateSalarySettings: (settings: Partial<SalarySettings>) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -55,6 +61,11 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
         return saved ? JSON.parse(saved) : { showSpecialization: false };
     });
 
+    const [salary, setSalary] = useState<SalarySettings>(() => {
+        const saved = localStorage.getItem(`${SETTINGS_STORAGE_KEY}_salary`);
+        return saved ? JSON.parse(saved) : { showFinesInReport: true };
+    });
+
     // Persistence effects
     React.useEffect(() => {
         localStorage.setItem(`${SETTINGS_STORAGE_KEY}_dashboard`, JSON.stringify(dashboard));
@@ -72,6 +83,10 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
         localStorage.setItem(`${SETTINGS_STORAGE_KEY}_teachers`, JSON.stringify(teachers));
     }, [teachers]);
 
+    React.useEffect(() => {
+        localStorage.setItem(`${SETTINGS_STORAGE_KEY}_salary`, JSON.stringify(salary));
+    }, [salary]);
+
     const updateDashboardSettings = (settings: Partial<DashboardSettings>) => {
         setDashboard(prev => ({ ...prev, ...settings }));
     };
@@ -88,16 +103,22 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
         setTeachers(prev => ({ ...prev, ...settings }));
     };
 
+    const updateSalarySettings = (settings: Partial<SalarySettings>) => {
+        setSalary(prev => ({ ...prev, ...settings }));
+    };
+
     return (
         <SettingsContext.Provider value={{
             dashboard,
             students,
             users,
             teachers,
+            salary,
             updateDashboardSettings,
             updateStudentSettings,
             updateUserSettings,
-            updateTeacherSettings
+            updateTeacherSettings,
+            updateSalarySettings
         }}>
             {children}
         </SettingsContext.Provider>

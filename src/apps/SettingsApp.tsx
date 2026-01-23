@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSettings } from '../context/SettingsContext';
 
-type SettingsView = 'root' | 'dashboard' | 'students' | 'users' | 'groups' | 'teachers';
+type SettingsView = 'root' | 'dashboard' | 'students' | 'users' | 'groups' | 'teachers' | 'salary';
 
 export const SettingsApp: React.FC = () => {
     const {
@@ -12,7 +12,9 @@ export const SettingsApp: React.FC = () => {
         updateDashboardSettings,
         updateStudentSettings,
         updateUserSettings,
-        updateTeacherSettings
+        updateTeacherSettings,
+        salary,
+        updateSalarySettings
     } = useSettings();
     const [activeView, setActiveView] = useState<SettingsView>('root');
 
@@ -133,6 +135,38 @@ export const SettingsApp: React.FC = () => {
                                 description="Configure instructor profiles and preferences"
                                 onClick={() => setActiveView('teachers')}
                             />
+
+                            <SettingsRow
+                                icon={
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                }
+                                title="Salary Management"
+                                description="Configure salary reports and fines"
+                                onClick={() => setActiveView('salary')}
+                            />
+                        </div>
+                    </div>
+                );
+
+            case 'salary':
+                return (
+                    <div className="w-full">
+                        <DetailHeader title="Salary Management" />
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                            <div className="p-6 flex items-center justify-between border-b border-gray-50">
+                                <div>
+                                    <div className="font-medium text-slate-900">Show Fines</div>
+                                    <div className="text-sm text-slate-400">Include fine details in teacher salary reports</div>
+                                </div>
+                                <button
+                                    onClick={() => updateSalarySettings({ showFinesInReport: !salary.showFinesInReport })}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${salary.showFinesInReport ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${salary.showFinesInReport ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 );
