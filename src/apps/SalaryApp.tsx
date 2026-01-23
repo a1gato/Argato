@@ -130,28 +130,30 @@ export const SalaryApp: React.FC = () => {
                     ) : (
                         <>
                             {view === 'list' && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="flex flex-col space-y-2">
                                     {filteredTeachers.map((teacher, i) => (
                                         <button
                                             key={i}
                                             onClick={() => handleTeacherClick(teacher)}
-                                            className="flex items-center p-4 bg-white border border-gray-100 rounded-xl hover:border-green-200 hover:shadow-md transition-all group text-left"
+                                            className="flex items-center p-3 bg-white border border-gray-100 rounded-lg hover:border-green-200 hover:bg-green-50/30 transition-all group text-left"
                                         >
-                                            <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-sm font-medium group-hover:bg-green-50 group-hover:text-green-600 transition-colors">
+                                            <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-sm font-medium group-hover:bg-white group-hover:text-green-600 transition-colors">
                                                 {teacher.charAt(0)}
                                             </div>
-                                            <div className="ml-4">
+                                            <div className="ml-4 flex-1">
                                                 <div className="font-medium text-slate-900 group-hover:text-green-700 transition-colors">
                                                     {teacher}
                                                 </div>
-                                                <div className="text-xs text-slate-500">
-                                                    View Records
-                                                </div>
+                                            </div>
+                                            <div className="text-slate-400 group-hover:text-green-600 transition-colors">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                </svg>
                                             </div>
                                         </button>
                                     ))}
                                     {filteredTeachers.length === 0 && (
-                                        <div className="col-span-full text-center py-12 text-slate-400">
+                                        <div className="text-center py-12 text-slate-400">
                                             No teachers found matching "{searchTerm}"
                                         </div>
                                     )}
