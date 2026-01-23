@@ -42,9 +42,9 @@ export const SalaryApp: React.FC = () => {
     };
 
     const formatCurrency = (value: number): string => {
-        return new Intl.NumberFormat('en-US', {
+        return new Intl.NumberFormat('uz-UZ', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'UZS',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(value);
@@ -205,10 +205,10 @@ export const SalaryApp: React.FC = () => {
                                                 {teacherSalaries.map((s, i) => (
                                                     <tr key={i} className="hover:bg-slate-50/50">
                                                         <td className="px-6 py-3 font-medium text-slate-900">{s.month}</td>
-                                                        <td className="px-6 py-3 text-right">{s.income}</td>
-                                                        <td className="px-6 py-3 text-right text-green-600">{s.bonus}</td>
-                                                        <td className="px-6 py-3 text-right text-red-600">{s.fine}</td>
-                                                        <td className="px-6 py-3 text-right font-bold text-slate-900">{s.total}</td>
+                                                        <td className="px-6 py-3 text-right">{formatCurrency(parseCurrency(s.income))}</td>
+                                                        <td className="px-6 py-3 text-right text-green-600">{formatCurrency(parseCurrency(s.bonus))}</td>
+                                                        <td className="px-6 py-3 text-right text-red-600">{formatCurrency(parseCurrency(s.fine))}</td>
+                                                        <td className="px-6 py-3 text-right font-bold text-slate-900">{formatCurrency(parseCurrency(s.total))}</td>
                                                     </tr>
                                                 ))}
                                                 {teacherSalaries.length === 0 && (
@@ -237,7 +237,7 @@ export const SalaryApp: React.FC = () => {
                                                         <tr key={i} className="hover:bg-slate-50/50">
                                                             <td className="px-6 py-3 text-slate-500">{f.date}</td>
                                                             <td className="px-6 py-3 text-slate-900">{f.reason}</td>
-                                                            <td className="px-6 py-3 text-right font-medium text-red-600">-{f.amount}</td>
+                                                            <td className="px-6 py-3 text-right font-medium text-red-600">{formatCurrency(-parseCurrency(f.amount))}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
