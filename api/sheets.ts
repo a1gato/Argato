@@ -32,13 +32,13 @@ export default async function handler(request, response) {
 
         const sheetTitles = (metadataResponse.data.sheets || [])
             .map(s => s.properties?.title)
-            .filter(title => title !== 'Fines'); // All salary months
+            .filter(title => title !== 'Fines' && !title.startsWith('Pivot Table')); // Exclude Fines and Pivot Tables
 
         // 2. Efficiently Batch Fetch All Ranges
         // Range 0 is Fines, Ranges 1..N are Salary Months
         const ranges = [
             "'Fines'!A2:E",
-            ...sheetTitles.map(title => `'${title}'!A2:F`)
+            ...sheetTitles.map(title => `'${title.replace(/'/g, "''")}'!A2:F`)
         ];
 
         const batchResponse = await sheets.spreadsheets.values.batchGet({
@@ -99,7 +99,7 @@ export default async function handler(request, response) {
 
         // Add Cache Header (Vercel Serverless Cache)
         response.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
-        return response.status(200).json({ fines, salaries });
+        return response.status(200).json({ fines, salaries, debug: { sheets: sheetTitles } });
     } catch (error) {
         console.error('Sheet Error:', error);
         return response.status(500).json({ error: error.message });
