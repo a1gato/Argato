@@ -88,6 +88,19 @@ export const SalaryApp: React.FC = () => {
         <div className="flex h-full bg-slate-50">
             {/* Main Content */}
             <div className="flex-1 flex flex-col h-full overflow-hidden">
+                {/* DEBUG BANNER - FORCE VISIBILITY */}
+                <div className="bg-red-600 text-white px-4 py-2 text-xs flex justify-between items-center shrink-0">
+                    <span className="font-bold">DEBUG MODE v2.0 - {new Date().toLocaleTimeString()}</span>
+                    <div className="flex gap-4">
+                        <span>Sheets: {data.debug?.sheets?.length || 0}</span>
+                        <span>Records: {data.salaries.length}</span>
+                        <span>Fines: {data.fines.length}</span>
+                        <button onClick={() => window.location.reload()} className="bg-white text-red-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider hover:bg-red-50">
+                            Reload
+                        </button>
+                    </div>
+                </div>
+
                 <div className="h-16 border-b border-gray-200 bg-white px-8 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2 mr-4 border-r border-gray-200 pr-4">
