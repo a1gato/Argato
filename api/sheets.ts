@@ -1,10 +1,11 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { google } from 'googleapis';
+const { google } = require('googleapis');
 
+// Scopes required for reading Google Sheets
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 
-export default async function handler(request: VercelRequest, response: VercelResponse) {
+export default async function handler(request, response) {
     try {
+        // Load credentials from environment variables
         const { email, privateKey, sheetId } = {
             email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
             privateKey: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
@@ -15,6 +16,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
             return response.status(500).json({ error: 'Missing configuration' });
         }
 
+        // Initialize Google Auth
         const auth = new google.auth.JWT({
             email,
             key: privateKey,
@@ -23,48 +25,69 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
         const sheets = google.sheets({ version: 'v4', auth });
 
-        // 1. Fetch Fines
-        // Assumes columns: A=FIO, B=Reason, C=Month, D=Date, E=Amount
-        const finesResponse = await sheets.spreadsheets.values.get({
+        // 1. Fetch Spreadsheet Metadata to get all Tab Names
+        const metadataResponse = await sheets.spreadsheets.get({
             spreadsheetId: sheetId,
-            range: "'Fines'!A2:E", // Skip header
         });
 
-        const fines = (finesResponse.data.values || []).map(row => ({
-            teacherName: row[0] || '',
-            reason: row[1] || '',
-            month: row[2] || '',
-            date: row[3] || '',
-            amount: row[4] || '0',
-        }));
+        const sheetTitles = (metadataResponse.data.sheets || [])
+            .map(s => s.properties.title)
+            .filter(title => title !== 'Fines'); // Exclude the Fines tab
 
-        // 2. Fetch Salaries (from Salary_2 tab as seen in screenshot, roughly)
-        // Note: Implicitly assuming a Name column exists or we fetch all.
-        // Given the ambiguity, we'll fetch the raw data and let the frontend filter if possible,
-        // OR we will update this once we know more. For now, fetching same range structure.
-        // If Salary_2 has no names, this might return untethered data.
-        let salaries = [];
+        // 2. Fetch Fines (Static Tab)
+        let fines = [];
         try {
-            const salaryResponse = await sheets.spreadsheets.values.get({
+            const finesResponse = await sheets.spreadsheets.values.get({
                 spreadsheetId: sheetId,
-                range: "'Salary_2'!A2:F", // Month, Income, Bonus, Fine, Recount, Total
+                range: "'Fines'!A2:E",
             });
-            // WE DON'T HAVE A CONFIRMED NAME COLUMN IN SALARY CUSOTMER SCREENSHOT.
-            // Returning it raw for now.
-            salaries = (salaryResponse.data.values || []).map(row => ({
-                month: row[0],
-                income: row[1],
-                bonus: row[2],
-                fine: row[3],
-                recount: row[4],
-                total: row[5]
+            fines = (finesResponse.data.values || []).map(row => ({
+                teacherName: row[0] || '',
+                reason: row[1] || '',
+                month: row[2] || '',
+                date: row[3] || '',
+                amount: row[4] || '0',
             }));
-        } catch (e) {
-            console.warn("Could not fetch salaries", e);
+        } catch (error) {
+            console.warn("Error fetching fines:", error);
         }
 
+        // 3. Fetch Salaries from ALL other tabs (Months)
+        // We run these in parallel for performance
+        let salaries = [];
+        const salaryPromises = sheetTitles.map(async (title) => {
+            try {
+                // Assuming standard columns: Month, Income, Bonus, Fine, Recount, Total
+                // If the sheet name itself IS the month, we might want to inject it, 
+                // but the previous code expected column A to be "Month".
+                // We'll read A2:F.
+                const res = await sheets.spreadsheets.values.get({
+                    spreadsheetId: sheetId,
+                    range: `'${title}'!A2:F`,
+                });
+
+                const validRows = (res.data.values || []).filter(row => row.length > 0);
+
+                return validRows.map(row => ({
+                    // If column A is missing, use the Sheet Title as the month
+                    month: row[0] || title,
+                    income: row[1] || '0',
+                    bonus: row[2] || '0',
+                    fine: row[3] || '0',
+                    recount: row[4] || '0',
+                    total: row[5] || '0'
+                }));
+            } catch (err) {
+                console.warn(`Error fetching tab ${title}:`, err);
+                return [];
+            }
+        });
+
+        const results = await Promise.all(salaryPromises);
+        salaries = results.flat();
+
         return response.status(200).json({ fines, salaries });
-    } catch (error: any) {
+    } catch (error) {
         console.error('Sheet Error:', error);
         return response.status(500).json({ error: error.message });
     }
