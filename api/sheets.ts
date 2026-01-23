@@ -73,15 +73,16 @@ export default async function handler(request, response) {
                 const monthSalaries = rows.map(row => {
                     const income = row[1] || '0';
 
-                    // Robust Numeric Check:
-                    // 1. Remove everything that isn't a digit, dot, or minus sign.
-                    // 2. Check if the result is a valid number.
-                    // This handles "1,200", "$1200", "1200 USD", etc. correctly.
-                    const numericIncome = income.replace(/[^0-9.-]+/g, '');
-                    const isNumeric = numericIncome.length > 0 && !isNaN(parseFloat(numericIncome));
+                    // Improved Validation:
+                    // 1. If it looks like a sentence (has many letters), it's not a salary.
+                    //    We allow up to 4 letters for currency codes (like "USD ", "UZS").
+                    //    "To come early..." has many more.
+                    const letterCount = (income.match(/[a-zA-Z]/g) || []).length;
+                    if (letterCount > 4) return null;
 
-                    // If it's NOT numeric, and it's not just an empty/zero field, assume it's garbage (e.g. Pivot Table text)
-                    if (!isNumeric && income !== '0' && income !== '') return null;
+                    // 2. Must contain at least one digit.
+                    const hasDigit = /\d/.test(income);
+                    if (!hasDigit && income !== '0' && income !== '') return null;
 
                     return {
                         teacherName: row[0] || '',
