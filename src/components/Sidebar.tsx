@@ -16,8 +16,11 @@ export const Sidebar: React.FC = () => {
             <div className="flex-1 w-full flex flex-col items-center gap-2 pt-2">
 
                 {/* Logo */}
-                <div className="w-16 h-16 mb-6 flex items-center justify-center">
-                    <img src="/logo.png" alt="Fast IT Logo" className="w-full h-full object-contain" />
+                <div className="flex items-center gap-3 mb-8 px-6 w-full">
+                    <div className="w-10 h-10 shrink-0">
+                        <img src="/logo.png" alt="Fast IT Logo" className="w-full h-full object-contain" />
+                    </div>
+                    <span className="text-xl font-bold text-[#1a2e4c] tracking-tight whitespace-nowrap">Fast IT</span>
                 </div>
 
                 {/* Dashboard Button */}
