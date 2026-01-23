@@ -8,6 +8,7 @@ export interface Fine {
 }
 
 export interface Salary {
+    teacherName: string;
     month: string;
     income: string;
     bonus: string;

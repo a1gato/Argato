@@ -69,8 +69,8 @@ export default async function handler(request, response) {
                 const validRows = (res.data.values || []).filter(row => row.length > 0);
 
                 return validRows.map(row => ({
-                    // If column A is missing, use the Sheet Title as the month
-                    month: row[0] || title,
+                    teacherName: row[0] || '', // Column A is now Teacher Name
+                    month: title,              // Month is derived from Sheet Name
                     income: row[1] || '0',
                     bonus: row[2] || '0',
                     fine: row[3] || '0',

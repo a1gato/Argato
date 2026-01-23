@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { fetchSheetData, type Fine, type Salary } from '../services/sheetsService';
 
 export const SalaryApp: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'salaries' | 'fines'>('overview');
+    const [view, setView] = useState<'list' | 'detail'>('list');
+    const [selectedTeacher, setSelectedTeacher] = useState<string | null>(null);
     const [data, setData] = useState<{ fines: Fine[]; salaries: Salary[] }>({ fines: [], salaries: [] });
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -17,70 +18,102 @@ export const SalaryApp: React.FC = () => {
         loadData();
     }, []);
 
-    const filteredFines = data.fines.filter(f =>
-        f.teacherName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        f.reason.toLowerCase().includes(searchTerm.toLowerCase())
+    const uniqueTeachers = Array.from(new Set([
+        ...data.salaries.map(s => s.teacherName),
+        ...data.fines.map(f => f.teacherName)
+    ])).filter(Boolean).sort();
+
+    const filteredTeachers = uniqueTeachers.filter(t =>
+        t.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // For salaries, we filter by row contents if possible, mostly Month right now based on previous knowledge
-    const filteredSalaries = data.salaries.filter(s =>
-        s.month.toLowerCase().includes(searchTerm.toLowerCase())
+    const parseCurrency = (value: string): number => {
+        if (!value) return 0;
+        // Remove commas, currency symbols, and whitespace
+        const cleanValue = value.replace(/[$,\s]/g, '');
+        const number = parseFloat(cleanValue);
+        return isNaN(number) ? 0 : number;
+    };
+
+    const formatCurrency = (value: number): string => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(value);
+    };
+
+    const handleTeacherClick = (teacher: string) => {
+        setSelectedTeacher(teacher);
+        setView('detail');
+        setSearchTerm(''); // Clear search when entering detail view
+    };
+
+    const handleBack = () => {
+        setView('list');
+        setSelectedTeacher(null);
+        setSearchTerm('');
+    };
+
+    // Filter Logic for Detail View
+    const teacherSalaries = data.salaries.filter(s =>
+        s.teacherName === selectedTeacher &&
+        // Filter out empty records (where total is 0 or empty)
+        parseCurrency(s.total) !== 0
     );
+
+    const teacherFines = data.fines.filter(f =>
+        f.teacherName === selectedTeacher
+    );
+
+    const totalSalaryAmount = teacherSalaries.reduce((sum, s) => sum + parseCurrency(s.total), 0);
+    const totalFinesAmount = teacherFines.reduce((sum, f) => sum + parseCurrency(f.amount), 0);
+
+    // Sort salaries by month if needed (optional logic, relying on sheet order for now)
 
     return (
         <div className="flex h-full bg-slate-50">
-            {/* Sidebar */}
-            <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
-                <div className="p-6">
-                    <h1 className="text-xl font-light text-slate-800 flex items-center gap-2">
-                        <span className="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
-                            $
-                        </span>
-                        Finance
-                    </h1>
-                </div>
-
-                <nav className="flex-1 px-4 space-y-1">
-                    <button
-                        onClick={() => setActiveTab('overview')}
-                        className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'overview' ? 'bg-green-50 text-green-700' : 'text-slate-600 hover:bg-slate-50'
-                            }`}
-                    >
-                        Overview
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('salaries')}
-                        className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'salaries' ? 'bg-green-50 text-green-700' : 'text-slate-600 hover:bg-slate-50'
-                            }`}
-                    >
-                        Salaries
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('fines')}
-                        className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${activeTab === 'fines' ? 'bg-green-50 text-green-700' : 'text-slate-600 hover:bg-slate-50'
-                            }`}
-                    >
-                        Fines
-                    </button>
-                </nav>
-            </div>
-
             {/* Main Content */}
             <div className="flex-1 flex flex-col h-full overflow-hidden">
                 <div className="h-16 border-b border-gray-200 bg-white px-8 flex items-center justify-between shrink-0">
-                    <h2 className="text-lg font-medium text-slate-800 capitalize">{activeTab}</h2>
-                    <div className="relative w-64">
-                        <input
-                            type="text"
-                            placeholder="Search records..."
-                            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                        <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 mr-4 border-r border-gray-200 pr-4">
+                            <span className="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center font-bold">
+                                $
+                            </span>
+                            <span className="text-xl font-light text-slate-800 hidden md:block">Finance</span>
+                        </div>
+
+                        {view === 'detail' && (
+                            <button
+                                onClick={handleBack}
+                                className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                </svg>
+                            </button>
+                        )}
+                        <h2 className="text-lg font-medium text-slate-800">
+                            {view === 'list' ? 'Staff Directory' : `${selectedTeacher} - Financial Overview`}
+                        </h2>
                     </div>
+
+                    {view === 'list' && (
+                        <div className="relative w-64">
+                            <input
+                                type="text"
+                                placeholder="Search teachers..."
+                                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
+                            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-8">
@@ -89,87 +122,115 @@ export const SalaryApp: React.FC = () => {
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                         </div>
                     ) : (
-                        <div className="space-y-6">
-                            {/* Overview Cards */}
-                            {activeTab === 'overview' && (
-                                <div className="grid grid-cols-3 gap-6">
-                                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                        <div className="text-sm text-slate-500 mb-1">Total Salaries</div>
-                                        <div className="text-2xl font-semibold text-slate-900">{filteredSalaries.length} Records</div>
-                                    </div>
-                                    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                        <div className="text-sm text-slate-500 mb-1">Total Fines</div>
-                                        <div className="text-2xl font-semibold text-slate-900">{filteredFines.length} Issued</div>
-                                    </div>
+                        <>
+                            {view === 'list' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {filteredTeachers.map((teacher, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => handleTeacherClick(teacher)}
+                                            className="flex items-center p-4 bg-white border border-gray-100 rounded-xl hover:border-green-200 hover:shadow-md transition-all group text-left"
+                                        >
+                                            <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-sm font-medium group-hover:bg-green-50 group-hover:text-green-600 transition-colors">
+                                                {teacher.charAt(0)}
+                                            </div>
+                                            <div className="ml-4">
+                                                <div className="font-medium text-slate-900 group-hover:text-green-700 transition-colors">
+                                                    {teacher}
+                                                </div>
+                                                <div className="text-xs text-slate-500">
+                                                    View Records
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                    {filteredTeachers.length === 0 && (
+                                        <div className="col-span-full text-center py-12 text-slate-400">
+                                            No teachers found matching "{searchTerm}"
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
-                            {/* Salaries Table */}
-                            {(activeTab === 'overview' || activeTab === 'salaries') && (
-                                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                                    <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                                        <h3 className="font-semibold text-slate-800">Salary Records</h3>
+                            {view === 'detail' && (
+                                <div className="space-y-6">
+                                    {/* Summary Cards */}
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                                            <div className="text-sm text-slate-500 mb-1">Total Salary Disbursed</div>
+                                            <div className="text-2xl font-semibold text-slate-900">
+                                                {formatCurrency(totalSalaryAmount)}
+                                            </div>
+                                        </div>
+                                        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                                            <div className="text-sm text-slate-500 mb-1">Total Fines</div>
+                                            <div className="text-2xl font-semibold text-red-600">
+                                                {formatCurrency(totalFinesAmount)}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <table className="w-full text-sm text-left">
-                                        <thead className="bg-gray-50 text-slate-500">
-                                            <tr>
-                                                <th className="px-6 py-3 font-medium">Month</th>
-                                                <th className="px-6 py-3 font-medium text-right">Income</th>
-                                                <th className="px-6 py-3 font-medium text-right">Bonus</th>
-                                                <th className="px-6 py-3 font-medium text-right">Fine</th>
-                                                <th className="px-6 py-3 font-medium text-right">Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100">
-                                            {filteredSalaries.map((s, i) => (
-                                                <tr key={i} className="hover:bg-slate-50/50">
-                                                    <td className="px-6 py-3 font-medium text-slate-900">{s.month}</td>
-                                                    <td className="px-6 py-3 text-right">{s.income}</td>
-                                                    <td className="px-6 py-3 text-right text-green-600">{s.bonus}</td>
-                                                    <td className="px-6 py-3 text-right text-red-600">{s.fine}</td>
-                                                    <td className="px-6 py-3 text-right font-bold text-slate-900">{s.total}</td>
-                                                </tr>
-                                            ))}
-                                            {filteredSalaries.length === 0 && (
-                                                <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">No salary records found</td></tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
 
-                            {/* Fines Table */}
-                            {(activeTab === 'overview' || activeTab === 'fines') && (
-                                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                                    <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                                        <h3 className="font-semibold text-slate-800">Recent Fines</h3>
-                                    </div>
-                                    <table className="w-full text-sm text-left">
-                                        <thead className="bg-gray-50 text-slate-500">
-                                            <tr>
-                                                <th className="px-6 py-3 font-medium">Teacher / ID</th>
-                                                <th className="px-6 py-3 font-medium">Reason</th>
-                                                <th className="px-6 py-3 font-medium">Date</th>
-                                                <th className="px-6 py-3 font-medium text-right">Amount</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100">
-                                            {filteredFines.map((f, i) => (
-                                                <tr key={i} className="hover:bg-slate-50/50">
-                                                    <td className="px-6 py-3 font-medium text-slate-900">{f.teacherName}</td>
-                                                    <td className="px-6 py-3 text-slate-600">{f.reason}</td>
-                                                    <td className="px-6 py-3 text-slate-500">{f.date}</td>
-                                                    <td className="px-6 py-3 text-right font-medium text-red-600">-{f.amount}</td>
+                                    {/* Salary Table */}
+                                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-green-50/30">
+                                            <h3 className="font-semibold text-slate-800">Salary History</h3>
+                                        </div>
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="bg-gray-50 text-slate-500">
+                                                <tr>
+                                                    <th className="px-6 py-3 font-medium">Month</th>
+                                                    <th className="px-6 py-3 font-medium text-right">Income</th>
+                                                    <th className="px-6 py-3 font-medium text-right">Bonus</th>
+                                                    <th className="px-6 py-3 font-medium text-right">Fine</th>
+                                                    <th className="px-6 py-3 font-medium text-right">Total</th>
                                                 </tr>
-                                            ))}
-                                            {filteredFines.length === 0 && (
-                                                <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400">No fines found</td></tr>
-                                            )}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {teacherSalaries.map((s, i) => (
+                                                    <tr key={i} className="hover:bg-slate-50/50">
+                                                        <td className="px-6 py-3 font-medium text-slate-900">{s.month}</td>
+                                                        <td className="px-6 py-3 text-right">{s.income}</td>
+                                                        <td className="px-6 py-3 text-right text-green-600">{s.bonus}</td>
+                                                        <td className="px-6 py-3 text-right text-red-600">{s.fine}</td>
+                                                        <td className="px-6 py-3 text-right font-bold text-slate-900">{s.total}</td>
+                                                    </tr>
+                                                ))}
+                                                {teacherSalaries.length === 0 && (
+                                                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">No active salary records found</td></tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Fines Table */}
+                                    {teacherFines.length > 0 && (
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                                            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-red-50/30">
+                                                <h3 className="font-semibold text-slate-800">Fines Record</h3>
+                                            </div>
+                                            <table className="w-full text-sm text-left">
+                                                <thead className="bg-gray-50 text-slate-500">
+                                                    <tr>
+                                                        <th className="px-6 py-3 font-medium">Date</th>
+                                                        <th className="px-6 py-3 font-medium">Reason</th>
+                                                        <th className="px-6 py-3 font-medium text-right">Amount</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {teacherFines.map((f, i) => (
+                                                        <tr key={i} className="hover:bg-slate-50/50">
+                                                            <td className="px-6 py-3 text-slate-500">{f.date}</td>
+                                                            <td className="px-6 py-3 text-slate-900">{f.reason}</td>
+                                                            <td className="px-6 py-3 text-right font-medium text-red-600">-{f.amount}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                        </div>
+                        </>
                     )}
                 </div>
             </div>
