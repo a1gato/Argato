@@ -21,7 +21,13 @@ export const SalaryApp: React.FC = () => {
     const uniqueTeachers = Array.from(new Set([
         ...data.salaries.map(s => s.teacherName),
         ...data.fines.map(f => f.teacherName)
-    ])).filter(Boolean).sort();
+    ])).filter(t => {
+        if (!t) return false;
+        const lower = t.toLowerCase();
+        // Filter out common spreadsheet summary words and potential header artifacts
+        const invalidWords = ['total', 'grand total', 'subtotal', 'income', 'month', 'teacher', 'december', 'november', 'october', 'september', 'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august'];
+        return !invalidWords.some(w => lower.includes(w));
+    }).sort();
 
     const filteredTeachers = uniqueTeachers.filter(t =>
         t.toLowerCase().includes(searchTerm.toLowerCase())
