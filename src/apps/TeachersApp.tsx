@@ -7,6 +7,16 @@ export const TeachersApp: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTeacher, setEditingTeacher] = useState<User | null>(null);
 
+    const [activeTab, setActiveTab] = useState<'details' | 'fines' | 'salary'>('details');
+    const [sheetData, setSheetData] = useState<{ fines: import('../services/sheetsService').Fine[], salaries: import('../services/sheetsService').Salary[] }>({ fines: [], salaries: [] });
+
+    React.useEffect(() => {
+        // Load sheet data on mount
+        import('../services/sheetsService').then(({ fetchSheetData }) => {
+            fetchSheetData().then(data => setSheetData(data));
+        });
+    }, []);
+
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -62,6 +72,7 @@ export const TeachersApp: React.FC = () => {
     };
 
     const handleOpenModal = (teacher?: User) => {
+        setActiveTab('details');
         if (teacher) {
             setEditingTeacher(teacher);
             setFormData({
@@ -121,6 +132,14 @@ export const TeachersApp: React.FC = () => {
         `${t.firstName} ${t.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.employeeId.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    // Filter fines for the current teacher
+    const teacherFines = editingTeacher
+        ? sheetData.fines.filter(f => {
+            const fullName = `${editingTeacher.firstName} ${editingTeacher.lastName}`.toLowerCase();
+            return f.teacherName.toLowerCase().includes(fullName) || fullName.includes(f.teacherName.toLowerCase());
+        })
+        : [];
 
     return (
         <div className="p-8 w-full h-full overflow-y-auto">
@@ -225,91 +244,190 @@ export const TeachersApp: React.FC = () => {
 
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-2xl p-6 shadow-xl">
-                        <h2 className="text-xl font-light text-slate-900 mb-6">{editingTeacher ? 'Edit Teacher' : 'Add New Teacher'}</h2>
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="grid grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">First Name</label>
-                                    <input
-                                        type="text"
-                                        value={formData.firstName}
-                                        onChange={e => setFormData({ ...formData, firstName: e.target.value })}
-                                        className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.firstName ? 'border-red-500' : 'border-gray-200'}`}
-                                        placeholder="Jane"
-                                    />
+                    <div className="bg-white rounded-2xl w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                            <h2 className="text-xl font-light text-slate-900">{editingTeacher ? 'Edit Teacher' : 'Add New Teacher'}</h2>
+                            {editingTeacher && (
+                                <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
+                                    <button
+                                        onClick={() => setActiveTab('details')}
+                                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'details' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    >
+                                        Details
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('fines')}
+                                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'fines' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    >
+                                        Fines
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('salary')}
+                                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === 'salary' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    >
+                                        Salary
+                                    </button>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Last Name</label>
-                                    <input
-                                        type="text"
-                                        value={formData.lastName}
-                                        onChange={e => setFormData({ ...formData, lastName: e.target.value })}
-                                        className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.lastName ? 'border-red-500' : 'border-gray-200'}`}
-                                        placeholder="Smith"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Phone</label>
-                                    <input
-                                        type="tel"
-                                        value={formData.telephone}
-                                        onChange={e => setFormData({ ...formData, telephone: e.target.value })}
-                                        className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.telephone ? 'border-red-500' : 'border-gray-200'}`}
-                                        placeholder="555-0199"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Email</label>
-                                    <input
-                                        type="email"
-                                        value={formData.email}
-                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                        className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
-                                        placeholder="jane.smith@school.com"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Teacher ID</label>
-                                    <input
-                                        type="text"
-                                        value={formData.employeeId}
-                                        onChange={e => setFormData({ ...formData, employeeId: e.target.value })}
-                                        className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.employeeId ? 'border-red-500' : 'border-gray-200'}`}
-                                        placeholder="TCH-001"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Password {editingTeacher && <span className="text-gray-400 lowercase font-normal">(leave blank to keep)</span>}</label>
-                                    <input
-                                        type="text"
-                                        value={formData.password}
-                                        onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                        className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.password ? 'border-red-500' : 'border-gray-200'}`}
-                                        placeholder="••••••••"
-                                    />
-                                </div>
-                            </div>
+                            )}
+                        </div>
 
-                            <div className="flex gap-4 pt-4 border-t border-gray-100 mt-6">
+                        <div className="p-6 overflow-y-auto">
+                            {activeTab === 'details' ? (
+                                <form onSubmit={handleSubmit} className="space-y-6">
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">First Name</label>
+                                            <input
+                                                type="text"
+                                                value={formData.firstName}
+                                                onChange={e => setFormData({ ...formData, firstName: e.target.value })}
+                                                className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.firstName ? 'border-red-500' : 'border-gray-200'}`}
+                                                placeholder="Jane"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Last Name</label>
+                                            <input
+                                                type="text"
+                                                value={formData.lastName}
+                                                onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+                                                className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.lastName ? 'border-red-500' : 'border-gray-200'}`}
+                                                placeholder="Smith"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Phone</label>
+                                            <input
+                                                type="tel"
+                                                value={formData.telephone}
+                                                onChange={e => setFormData({ ...formData, telephone: e.target.value })}
+                                                className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.telephone ? 'border-red-500' : 'border-gray-200'}`}
+                                                placeholder="555-0199"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Email</label>
+                                            <input
+                                                type="email"
+                                                value={formData.email}
+                                                onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                                className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none"
+                                                placeholder="jane.smith@school.com"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Teacher ID</label>
+                                            <input
+                                                type="text"
+                                                value={formData.employeeId}
+                                                onChange={e => setFormData({ ...formData, employeeId: e.target.value })}
+                                                className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.employeeId ? 'border-red-500' : 'border-gray-200'}`}
+                                                placeholder="TCH-001"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Password {editingTeacher && <span className="text-gray-400 lowercase font-normal">(leave blank to keep)</span>}</label>
+                                            <input
+                                                type="text"
+                                                value={formData.password}
+                                                onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                                className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.password ? 'border-red-500' : 'border-gray-200'}`}
+                                                placeholder="••••••••"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-4 pt-4 border-t border-gray-100 mt-6">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsModalOpen(false)}
+                                            className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-slate-600 hover:bg-gray-50 font-medium transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 font-medium transition-colors"
+                                        >
+                                            {editingTeacher ? 'Update Teacher' : 'Create Teacher'}
+                                        </button>
+                                    </div>
+                                </form>
+                            ) : activeTab === 'fines' ? (
+                                <div className="space-y-4">
+                                    {teacherFines.length === 0 ? (
+                                        <div className="text-center py-12 text-slate-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                            <p>No fines found for this teacher.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="border border-gray-100 rounded-xl overflow-hidden">
+                                            <table className="w-full text-sm">
+                                                <thead className="bg-gray-50 border-b border-gray-100">
+                                                    <tr>
+                                                        <th className="px-4 py-3 text-left font-semibold text-slate-600">Date</th>
+                                                        <th className="px-4 py-3 text-left font-semibold text-slate-600">Reason</th>
+                                                        <th className="px-4 py-3 text-right font-semibold text-slate-600">Amount</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-50">
+                                                    {teacherFines.map((fine, idx) => (
+                                                        <tr key={idx} className="hover:bg-gray-50/50">
+                                                            <td className="px-4 py-3 text-slate-600">{fine.date}</td>
+                                                            <td className="px-4 py-3 text-slate-900">{fine.reason}</td>
+                                                            <td className="px-4 py-3 text-right text-red-600 font-medium">-{fine.amount}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="bg-blue-50 text-blue-700 px-4 py-3 rounded-xl text-sm mb-4">
+                                        Showing Salary Data (Master View)
+                                    </div>
+                                    <div className="border border-gray-100 rounded-xl overflow-hidden">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-gray-50 border-b border-gray-100">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left font-semibold text-slate-600">Month</th>
+                                                    <th className="px-4 py-3 text-right font-semibold text-slate-600">Income</th>
+                                                    <th className="px-4 py-3 text-right font-semibold text-slate-600">Bonus</th>
+                                                    <th className="px-4 py-3 text-right font-semibold text-slate-600">Fine</th>
+                                                    <th className="px-4 py-3 text-right font-semibold text-slate-600">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50">
+                                                {sheetData.salaries.map((salary, idx) => (
+                                                    <tr key={idx} className="hover:bg-gray-50/50">
+                                                        <td className="px-4 py-3 text-slate-900 font-medium">{salary.month}</td>
+                                                        <td className="px-4 py-3 text-right text-slate-600">{salary.income}</td>
+                                                        <td className="px-4 py-3 text-right text-green-600">+{salary.bonus}</td>
+                                                        <td className="px-4 py-3 text-right text-red-600">-{salary.fine}</td>
+                                                        <td className="px-4 py-3 text-right text-indigo-600 font-bold">{salary.total}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        {activeTab !== 'details' && (
+                            <div className="p-4 border-t border-gray-100 flex justify-end">
                                 <button
-                                    type="button"
                                     onClick={() => setIsModalOpen(false)}
-                                    className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-slate-600 hover:bg-gray-50 font-medium transition-colors"
+                                    className="px-4 py-2 rounded-lg border border-gray-200 text-slate-600 hover:bg-gray-50 font-medium transition-colors"
                                 >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 font-medium transition-colors"
-                                >
-                                    {editingTeacher ? 'Update Teacher' : 'Create Teacher'}
+                                    Close
                                 </button>
                             </div>
-                        </form>
+                        )}
                     </div>
                 </div>
             )}
         </div>
     );
 };
+

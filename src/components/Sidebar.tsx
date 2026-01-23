@@ -74,6 +74,21 @@ export const Sidebar: React.FC = () => {
                     <span className="text-xs font-medium tracking-wide">Teachers</span>
                 </button>
 
+                {/* Salary Button (New) */}
+                <button
+                    onClick={() => setActiveApp('salary')}
+                    className={`w-full px-3 py-3 mx-2 rounded-xl flex flex-row items-center justify-start gap-3 transition-all duration-200 group relative
+                        ${isActive('salary')
+                            ? 'bg-white/10 text-slate-900 shadow-sm'
+                            : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
+                        }`}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-110 duration-300">
+                        <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                    <span className="text-xs font-medium tracking-wide">Salary</span>
+                </button>
+
                 {/* Groups Button (New) */}
                 <button
                     onClick={() => setActiveApp('groups')}
