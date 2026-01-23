@@ -16,10 +16,8 @@ export const Sidebar: React.FC = () => {
             <div className="flex-1 w-full flex flex-col items-center gap-2 pt-2">
 
                 {/* Logo */}
-                <div className="w-16 h-16 mb-6 rounded-full overflow-hidden shadow-lg p-0.5 bg-gradient-to-br from-[#1a2e4c] to-[#c5a059]">
-                    <div className="w-full h-full rounded-full overflow-hidden bg-white flex items-center justify-center">
-                        <img src="/logo.png" alt="Fast IT Logo" className="w-full h-full object-cover scale-110" />
-                    </div>
+                <div className="w-16 h-16 mb-6 flex items-center justify-center">
+                    <img src="/logo.png" alt="Fast IT Logo" className="w-full h-full object-contain" />
                 </div>
 
                 {/* Dashboard Button */}

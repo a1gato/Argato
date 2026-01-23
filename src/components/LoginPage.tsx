@@ -30,10 +30,8 @@ export const LoginPage: React.FC = () => {
         <div className="min-h-screen w-screen bg-gray-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 border border-gray-100">
                 <div className="text-center mb-10">
-                    <div className="w-24 h-24 mx-auto mb-6 rounded-full overflow-hidden shadow-lg p-0.5 bg-gradient-to-br from-[#1a2e4c] to-[#c5a059]">
-                        <div className="w-full h-full rounded-full overflow-hidden bg-white flex items-center justify-center">
-                            <img src="/logo.png" alt="Fast IT Logo" className="w-full h-full object-cover scale-110" />
-                        </div>
+                    <div className="w-32 h-32 mx-auto mb-6 flex items-center justify-center">
+                        <img src="/logo.png" alt="Fast IT Logo" className="w-full h-full object-contain" />
                     </div>
                     <h1 className="text-3xl font-light text-slate-900 mb-2">Welcome Back</h1>
                     <p className="text-slate-400 text-sm">Please sign in with your Employee ID</p>
