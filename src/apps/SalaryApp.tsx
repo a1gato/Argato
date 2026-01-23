@@ -72,9 +72,7 @@ export const SalaryApp: React.FC = () => {
 
     // Filter Logic for Detail View
     const teacherSalaries = data.salaries.filter(s =>
-        s.teacherName === selectedTeacher &&
-        // Filter out empty records: Show if Total OR Income is non-zero
-        (parseCurrency(s.total) !== 0 || parseCurrency(s.income) !== 0)
+        s.teacherName === selectedTeacher
     ).sort((a, b) => getMonthValue(a.month) - getMonthValue(b.month));
 
     const teacherFines = data.fines.filter(f =>

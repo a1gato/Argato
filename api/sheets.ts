@@ -74,15 +74,13 @@ export default async function handler(request, response) {
                     const income = row[1] || '0';
 
                     // Improved Validation:
-                    // 1. If it looks like a sentence (has many letters), it's not a salary.
-                    //    We allow up to 4 letters for currency codes (like "USD ", "UZS").
-                    //    "To come early..." has many more.
-                    const letterCount = (income.match(/[a-zA-Z]/g) || []).length;
-                    if (letterCount > 4) return null;
+                    // Relaxed validation to debug missing data
+                    // const letterCount = (income.match(/[a-zA-Z]/g) || []).length;
+                    // if (letterCount > 4) return null;
 
-                    // 2. Must contain at least one digit.
-                    const hasDigit = /\d/.test(income);
-                    if (!hasDigit && income !== '0' && income !== '') return null;
+                    // 2. Must contain at least one digit or be a valid entry
+                    // const hasDigit = /\d/.test(income);
+                    // if (!hasDigit && income !== '0' && income !== '') return null;
 
                     return {
                         teacherName: (row[0] || '').trim(),
