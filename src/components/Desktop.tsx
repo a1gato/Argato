@@ -10,6 +10,7 @@ import { TimeTableApp } from '../apps/TimeTableApp';
 import { GroupsApp } from '../apps/GroupsApp';
 import { UsersApp } from '../apps/UsersApp';
 import { TeachersApp } from '../apps/TeachersApp';
+import { SalaryApp } from '../apps/SalaryApp';
 
 export const Desktop: React.FC = () => {
     const { activeAppId } = useOS();
@@ -21,6 +22,7 @@ export const Desktop: React.FC = () => {
             case 'groups': return <GroupsApp />;
             case 'timetable': return <TimeTableApp />;
             case 'teachers': return <TeachersApp />;
+            case 'salary': return <SalaryApp />;
             case 'users': return <UsersApp />;
             case 'settings': return <SettingsApp />;
             default: return <div className="flex items-center justify-center text-slate-400 text-sm tracking-widest font-light select-none h-full">EMPTY SPACE</div>;
