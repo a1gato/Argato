@@ -32,60 +32,59 @@ export default async function handler(request, response) {
 
         const sheetTitles = (metadataResponse.data.sheets || [])
             .map(s => s.properties.title)
-            .filter(title => title !== 'Fines'); // Exclude the Fines tab
+            .filter(title => title !== 'Fines'); // All salary months
 
-        // 2. Fetch Fines (Static Tab)
+        // 2. Efficiently Batch Fetch All Ranges
+        // Range 0 is Fines, Ranges 1..N are Salary Months
+        const ranges = [
+            "'Fines'!A2:E",
+            ...sheetTitles.map(title => `'${title}'!A2:F`)
+        ];
+
+        const batchResponse = await sheets.spreadsheets.values.batchGet({
+            spreadsheetId: sheetId,
+            ranges: ranges,
+        });
+
+        const valueRanges = batchResponse.data.valueRanges || [];
+
+        // 3. Process Fines (First Range)
         let fines = [];
-        try {
-            const finesResponse = await sheets.spreadsheets.values.get({
-                spreadsheetId: sheetId,
-                range: "'Fines'!A2:E",
-            });
-            fines = (finesResponse.data.values || []).map(row => ({
+        const finesData = valueRanges[0]?.values;
+        if (finesData) {
+            fines = finesData.map(row => ({
                 teacherName: row[0] || '',
                 reason: row[1] || '',
                 month: row[2] || '',
                 date: row[3] || '',
                 amount: row[4] || '0',
             }));
-        } catch (error) {
-            console.warn("Error fetching fines:", error);
         }
 
-        // 3. Fetch Salaries from ALL other tabs (Months)
-        // We run these in parallel for performance
+        // 4. Process Salaries (Remaining Ranges)
         let salaries = [];
-        const salaryPromises = sheetTitles.map(async (title) => {
-            try {
-                // Assuming standard columns: Month, Income, Bonus, Fine, Recount, Total
-                // If the sheet name itself IS the month, we might want to inject it, 
-                // but the previous code expected column A to be "Month".
-                // We'll read A2:F.
-                const res = await sheets.spreadsheets.values.get({
-                    spreadsheetId: sheetId,
-                    range: `'${title}'!A2:F`,
-                });
+        // valueRanges indices 1 to length-1 correspond to sheetTitles indices 0 to length-1
+        for (let i = 1; i < valueRanges.length; i++) {
+            const rangeData = valueRanges[i];
+            const rows = rangeData.values;
+            const monthName = sheetTitles[i - 1]; // Corresponding month name
 
-                const validRows = (res.data.values || []).filter(row => row.length > 0);
-
-                return validRows.map(row => ({
-                    teacherName: row[0] || '', // Column A is now Teacher Name
-                    month: title,              // Month is derived from Sheet Name
+            if (rows && rows.length > 0) {
+                const monthSalaries = rows.map(row => ({
+                    teacherName: row[0] || '',
+                    month: monthName,
                     income: row[1] || '0',
                     bonus: row[2] || '0',
                     fine: row[3] || '0',
                     recount: row[4] || '0',
                     total: row[5] || '0'
                 }));
-            } catch (err) {
-                console.warn(`Error fetching tab ${title}:`, err);
-                return [];
+                salaries = salaries.concat(monthSalaries);
             }
-        });
+        }
 
-        const results = await Promise.all(salaryPromises);
-        salaries = results.flat();
-
+        // Add Cache Header (Vercel Serverless Cache)
+        response.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
         return response.status(200).json({ fines, salaries });
     } catch (error) {
         console.error('Sheet Error:', error);
