@@ -71,14 +71,21 @@ export default async function handler(request, response) {
 
             if (rows && rows.length > 0) {
                 const monthSalaries = rows.map(row => {
-                    const income = row[1] || '0';
-
-                    // Fully Permissive Parsing: Capture everything that looks like a row
-                    // We only require that it's not a totally empty row (which google api helps with, but we check too)
                     if (!row || row.length === 0) return null;
 
+                    const colA = (row[0] || '').trim();
+                    const income = row[1] || '0';
+
+                    // Heuristic: If colA matches the month name, or "Month", or is "Total", it's not a teacher name
+                    const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+                    const isNotTeacher = !colA ||
+                        monthNames.includes(colA.toLowerCase()) ||
+                        colA.toLowerCase() === 'month' ||
+                        colA.toLowerCase() === 'total' ||
+                        colA.toLowerCase() === 'fio';
+
                     return {
-                        teacherName: (row[0] || '').trim(),
+                        teacherName: isNotTeacher ? `Unassigned (${monthName})` : colA,
                         month: monthName,
                         income: income,
                         bonus: row[2] || '0',
@@ -86,15 +93,18 @@ export default async function handler(request, response) {
                         recount: row[4] || '0',
                         total: row[5] || '0'
                     };
-                }).filter(Boolean); // Remove nulls (invalid rows)
+                }).filter(Boolean);
 
                 salaries = salaries.concat(monthSalaries);
             }
         }
 
+        // Debug: Capture first 5 raw rows from the first salary sheet (index 1)
+        const firstSalarySheetRows = valueRanges[1]?.values?.slice(0, 5) || [];
+
         // Add Cache Header (Vercel Serverless Cache)
         response.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
-        return response.status(200).json({ fines, salaries, debug: { sheets: sheetTitles } });
+        return response.status(200).json({ fines, salaries, debug: { sheets: sheetTitles, rawRows: firstSalarySheetRows } });
     } catch (error) {
         console.error('Sheet Error:', error);
         return response.status(500).json({ error: error.message });

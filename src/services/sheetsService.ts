@@ -17,7 +17,7 @@ export interface Salary {
     total: string;
 }
 
-export const fetchSheetData = async (): Promise<{ fines: Fine[]; salaries: Salary[]; debug?: { sheets: string[] } }> => {
+export const fetchSheetData = async (): Promise<{ fines: Fine[]; salaries: Salary[]; debug?: { sheets: string[]; rawRows?: any[][] } }> => {
     try {
         const response = await fetch('/api/sheets');
         if (!response.ok) {

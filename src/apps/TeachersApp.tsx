@@ -399,15 +399,32 @@ export const TeachersApp: React.FC = () => {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-50">
-                                                {sheetData.salaries.map((salary, idx) => (
-                                                    <tr key={idx} className="hover:bg-gray-50/50">
-                                                        <td className="px-4 py-3 text-slate-900 font-medium">{salary.month}</td>
-                                                        <td className="px-4 py-3 text-right text-slate-600">{salary.income}</td>
-                                                        <td className="px-4 py-3 text-right text-green-600">+{salary.bonus}</td>
-                                                        <td className="px-4 py-3 text-right text-red-600">-{salary.fine}</td>
-                                                        <td className="px-4 py-3 text-right text-indigo-600 font-bold">{salary.total}</td>
-                                                    </tr>
-                                                ))}
+                                                {sheetData.salaries.map((s, idx) => {
+                                                    const parseCurr = (v: string) => {
+                                                        if (!v) return 0;
+                                                        const clean = v.replace(/[$,\s]/g, '');
+                                                        const num = parseFloat(clean);
+                                                        return isNaN(num) ? 0 : num;
+                                                    };
+                                                    const formatCurr = (v: number) => {
+                                                        return new Intl.NumberFormat('en-US', {
+                                                            style: 'decimal',
+                                                            minimumFractionDigits: 0,
+                                                            maximumFractionDigits: 0
+                                                        }).format(v) + ' UZS';
+                                                    };
+
+                                                    return (
+                                                        <tr key={idx} className="hover:bg-gray-50/50">
+                                                            <td className="px-4 py-3 text-slate-900 font-bold">{s.month || '-'}</td>
+                                                            <td className="px-4 py-3 text-left text-slate-500 text-[10px] font-medium uppercase">{s.teacherName}</td>
+                                                            <td className="px-4 py-3 text-right text-slate-600">{formatCurr(parseCurr(s.income))}</td>
+                                                            <td className="px-4 py-3 text-right text-green-600">+{formatCurr(parseCurr(s.bonus))}</td>
+                                                            <td className="px-4 py-3 text-right text-red-600">-{formatCurr(parseCurr(s.fine))}</td>
+                                                            <td className="px-4 py-3 text-right text-indigo-600 font-bold bg-slate-50/30">{formatCurr(parseCurr(s.total))}</td>
+                                                        </tr>
+                                                    );
+                                                })}
                                             </tbody>
                                         </table>
                                     </div>
