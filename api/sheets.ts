@@ -1,4 +1,4 @@
-const { google } = require('googleapis');
+import { google } from 'googleapis';
 
 // Scopes required for reading Google Sheets
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
