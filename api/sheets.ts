@@ -53,7 +53,7 @@ export default async function handler(request, response) {
         const finesData = valueRanges[0]?.values;
         if (finesData) {
             fines = finesData.map(row => ({
-                teacherName: row[0] || '',
+                teacherName: (row[0] || '').trim(),
                 reason: row[1] || '',
                 month: row[2] || '',
                 date: row[3] || '',
@@ -85,7 +85,7 @@ export default async function handler(request, response) {
                     if (!hasDigit && income !== '0' && income !== '') return null;
 
                     return {
-                        teacherName: row[0] || '',
+                        teacherName: (row[0] || '').trim(),
                         month: monthName,
                         income: income,
                         bonus: row[2] || '0',
