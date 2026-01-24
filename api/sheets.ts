@@ -81,22 +81,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
                     if (finesData) {
                         const spreadsheetFines = finesData.map(row => {
                             if (!row || row.length < 5) return null;
-                            const colA = (row[0] || '').trim();
                             const amount = (row[4] || '').trim();
 
                             if (!amount || amount === '0' || amount === '0.00' || isNaN(parseFloat(amount.replace(/[$,\s]/g, '')))) return null;
 
-                            // PER USER: Col A is FIO (Name)
-                            // Priority: Column A (if not header "FIO")
-                            // Fallback: Spreadsheet Title (Teacher Name)
-                            let finalName = spreadsheetTitle;
-                            const invalidNames = ['fio', 'teacher', 'name', 'total'];
-                            if (colA && colA.length > 1 && !invalidNames.includes(colA.toLowerCase())) {
-                                finalName = colA;
-                            }
-
                             return {
-                                teacherName: finalName,
+                                teacherName: spreadsheetTitle.trim(),
                                 reason: row[1] || 'Fine',
                                 month: row[2] || 'Unspecified',
                                 date: row[3] || '',

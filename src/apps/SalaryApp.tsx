@@ -198,6 +198,36 @@ export const SalaryApp: React.FC = () => {
                                         Use the dropdown selector in the top header to explore individual financial records for each staff member. All data is aggregated directly from your Google Sheets.
                                     </p>
                                 </div>
+
+                                {/* Debug Section */}
+                                <div className="bg-slate-100 p-6 rounded-3xl border border-slate-200">
+                                    <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-xs uppercase tracking-widest">
+                                        System Connectivity Status
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {(data?.debug?.sheets || []).map((s: any, i: number) => (
+                                            <div key={i} className="bg-white p-4 rounded-2xl flex items-center justify-between text-[10px]">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-2 h-2 rounded-full ${s.error ? 'bg-red-500' : (s.salariesCount > 0 ? 'bg-green-500' : 'bg-yellow-500')}`}></div>
+                                                    <div>
+                                                        <div className="font-bold text-slate-700 uppercase">{s.title || 'Unknown File'}</div>
+                                                        <div className="text-slate-400 font-medium">ID: ...{s.id?.slice(-8)}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    {s.error ? (
+                                                        <div className="text-red-500 font-bold italic">{s.error}</div>
+                                                    ) : (
+                                                        <div className="text-slate-500">
+                                                            <div>Tabs: {s.tabCount || 0}</div>
+                                                            <div>Records: {s.salariesCount || 0}</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             /* TEACHER DETAIL VIEW */
