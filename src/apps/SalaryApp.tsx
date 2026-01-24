@@ -41,12 +41,13 @@ export const SalaryApp: React.FC = () => {
         const lower = t.toLowerCase();
         // Allow unassigned categories but filter out true header/summary labels
         if (lower.includes('unassigned')) return true;
-        const invalidWords = ['total', 'grand total', 'subtotal', 'income', 'month', 'teacher', 'fio', 'answer'];
+        const invalidWords = ['total', 'grand total', 'subtotal', 'income', 'month', 'teacher', 'fio', 'answer', 'no fines', 'empty', '---'];
         return !invalidWords.some(w => lower.includes(w));
     }).sort((a, b) => {
-        // Put Unassigned at the bottom
-        if (a.toLowerCase().includes('unassigned')) return 1;
-        if (b.toLowerCase().includes('unassigned')) return -1;
+        const aIsUnassigned = a.toLowerCase().includes('unassigned');
+        const bIsUnassigned = b.toLowerCase().includes('unassigned');
+        if (aIsUnassigned && !bIsUnassigned) return 1;
+        if (!aIsUnassigned && bIsUnassigned) return -1;
         return a.localeCompare(b);
     });
 
@@ -126,7 +127,15 @@ export const SalaryApp: React.FC = () => {
                                     </div>
                                     <div className="flex-1 overflow-hidden">
                                         <div className={`text-sm font-bold truncate ${selectedTeacher === teacher ? 'text-indigo-600' : 'text-slate-700'}`}>{teacher}</div>
-                                        <div className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Finance Folder</div>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Finance Folder</div>
+                                            {data.salaries.some(s => s.teacherName === teacher) && (
+                                                <span className="w-1 h-1 rounded-full bg-green-500" title="Has Salary"></span>
+                                            )}
+                                            {data.fines.some(f => f.teacherName === teacher) && (
+                                                <span className="w-1 h-1 rounded-full bg-red-500" title="Has Fine"></span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </button>
