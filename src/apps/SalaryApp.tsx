@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { fetchSheetData, type Fine, type Salary } from '../services/sheetsService';
 
 export const SalaryApp: React.FC = () => {
-    const [data, setData] = useState<{ fines: Fine[]; salaries: Salary[]; debug?: { sheets: any[]; rawRows?: any[][] } }>({ fines: [], salaries: [] });
+    const [data, setData] = useState<{ fines: Fine[]; salaries: Salary[]; debug?: { sheets: string[]; rawRows?: any[][] } }>({ fines: [], salaries: [] });
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedTeacher, setSelectedTeacher] = useState<string | null>(null);
@@ -32,16 +32,21 @@ export const SalaryApp: React.FC = () => {
         }).format(value) + ' UZS';
     };
 
-    // Calculate Unique Teachers
+    // Calculate Unique Teachers/Categories for the Sidebar
     const uniqueTeachers = Array.from(new Set([
         ...data.salaries.map(s => s.teacherName.trim()),
         ...data.fines.map(f => f.teacherName.trim())
     ])).filter(t => {
         if (!t) return false;
         const lower = t.toLowerCase();
+
+        // Only hide if the name IS EXACTLY one of these technical words
         const technicalWords = ['total', 'grand total', 'subtotal', 'income', 'month', 'teacher', 'fio', 'answer', 'no fines', 'empty', '---', 'score', 'salary', 'finance', 'system root', 'unassigned'];
         if (technicalWords.includes(lower)) return false;
+
+        // Also hide technical placeholders
         if (lower.includes('unassigned')) return false;
+
         return t.length > 2;
     }).sort((a, b) => a.localeCompare(b));
 
@@ -53,30 +58,10 @@ export const SalaryApp: React.FC = () => {
         t.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Current selection data - Normalized and Aggregated by Month
-    const teacherSalariesRaw = selectedTeacher
+    // Current selection data - Normalized for Case Insensitivity
+    const teacherSalaries = selectedTeacher
         ? data.salaries.filter(s => s.teacherName.toLowerCase().trim() === selectedTeacher.toLowerCase().trim())
         : [];
-
-    const teacherSalaries = React.useMemo(() => {
-        const monthlyGroups: Record<string, Salary> = {};
-
-        teacherSalariesRaw.forEach(s => {
-            const m = s.month || 'Other';
-            if (!monthlyGroups[m]) {
-                monthlyGroups[m] = { ...s, income: '0', bonus: '0', fine: '0', recount: '0', total: '0' };
-            }
-            const current = monthlyGroups[m];
-            current.income = (parseCurrency(current.income) + parseCurrency(s.income)).toString();
-            current.bonus = (parseCurrency(current.bonus) + parseCurrency(s.bonus)).toString();
-            current.fine = (parseCurrency(current.fine) + parseCurrency(s.fine)).toString();
-            current.recount = (parseCurrency(current.recount) + parseCurrency(s.recount)).toString();
-            current.total = (parseCurrency(current.total) + parseCurrency(s.total)).toString();
-        });
-
-        return Object.values(monthlyGroups);
-    }, [teacherSalariesRaw]);
-
     const teacherFines = selectedTeacher
         ? data.fines.filter(f => f.teacherName.toLowerCase().trim() === selectedTeacher.toLowerCase().trim())
         : [];
@@ -94,12 +79,14 @@ export const SalaryApp: React.FC = () => {
 
     return (
         <div className="flex h-full bg-slate-50 overflow-hidden">
+            {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-w-0">
-                {/* Header Banner */}
+                {/* Header Banner - Navigation Integrated */}
                 <div className="bg-red-600 text-white px-6 py-3 text-[10px] font-bold flex justify-between items-center shrink-0 shadow-lg relative z-50">
                     <div className="flex items-center gap-6">
                         <span className="opacity-80">FINANCE SYSTEM v4.0</span>
 
+                        {/* Custom Dropdown Selector */}
                         <div className="relative group">
                             <button className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all border border-white/20">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,6 +98,7 @@ export const SalaryApp: React.FC = () => {
                                 </svg>
                             </button>
 
+                            {/* Dropdown Menu */}
                             <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 hidden group-hover:block overflow-hidden transition-all duration-200">
                                 <div className="p-2 border-b border-gray-50">
                                     <input
@@ -122,10 +110,10 @@ export const SalaryApp: React.FC = () => {
                                         onClick={(e) => e.stopPropagation()}
                                     />
                                 </div>
-                                <div className="max-h-80 overflow-y-auto py-1 text-slate-600">
+                                <div className="max-h-80 overflow-y-auto py-1">
                                     <button
                                         onClick={() => setSelectedTeacher(null)}
-                                        className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between ${selectedTeacher === null ? 'bg-indigo-50 text-indigo-600 font-bold' : 'hover:bg-slate-50'}`}
+                                        className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between ${selectedTeacher === null ? 'bg-indigo-50 text-indigo-600 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
                                     >
                                         System Root (Overview)
                                         {selectedTeacher === null && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600"></div>}
@@ -135,7 +123,7 @@ export const SalaryApp: React.FC = () => {
                                         <button
                                             key={teacher}
                                             onClick={() => setSelectedTeacher(teacher)}
-                                            className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between ${selectedTeacher === teacher ? 'bg-indigo-50 text-indigo-600 font-bold' : 'hover:bg-slate-50'}`}
+                                            className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between ${selectedTeacher === teacher ? 'bg-indigo-50 text-indigo-600 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
                                         >
                                             {teacher}
                                             {selectedTeacher === teacher && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600"></div>}
@@ -156,7 +144,7 @@ export const SalaryApp: React.FC = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                         </button>
-                        <button onClick={() => window.location.href = '/'} className="bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg transition-all border border-white/20 flex items-center gap-2">
+                        <button onClick={() => window.location.href = '/'} className="bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg transition-all border border-white/20 flex items-center gap-2" title="Exit to Desktop">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                             </svg>
@@ -169,16 +157,16 @@ export const SalaryApp: React.FC = () => {
                     <div className="max-w-6xl mx-auto space-y-10">
                         {selectedTeacher === null ? (
                             /* OVERVIEW VIEW */
-                            <div className="space-y-10 text-slate-900">
+                            <div className="space-y-10">
                                 <div className="text-center py-6">
-                                    <h1 className="text-4xl font-light">Financial Overview</h1>
+                                    <h1 className="text-4xl font-light text-slate-900">Financial Overview</h1>
                                     <p className="text-slate-500 mt-2">Comprehensive system aggregation across all spreadsheet data</p>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
                                         <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Total Salary Volume</div>
-                                        <div className="text-3xl font-bold">{formatCurrency(totalSalaryAmount)}</div>
+                                        <div className="text-3xl font-bold text-slate-900">{formatCurrency(totalSalaryAmount)}</div>
                                         <div className="h-1 w-full bg-green-100 rounded-full mt-4 overflow-hidden">
                                             <div className="h-full bg-green-500 w-[70%]"></div>
                                         </div>
@@ -199,22 +187,64 @@ export const SalaryApp: React.FC = () => {
                                     </div>
                                 </div>
 
+                                <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100">
+                                    <h3 className="font-bold text-indigo-900 mb-2 flex items-center gap-2">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        Usage Instructions
+                                    </h3>
+                                    <p className="text-indigo-700 text-sm leading-relaxed">
+                                        Use the dropdown selector in the top header to explore individual financial records for each staff member. All data is aggregated directly from your Google Sheets.
+                                    </p>
+                                </div>
+
+                                {/* Debug Section */}
+                                <div className="bg-slate-100 p-6 rounded-3xl border border-slate-200">
+                                    <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-xs uppercase tracking-widest">
+                                        System Connectivity Status
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {(data?.debug?.sheets || []).map((s: any, i: number) => (
+                                            <div key={i} className="bg-white p-4 rounded-2xl flex items-center justify-between text-[10px]">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-2 h-2 rounded-full ${s.error ? 'bg-red-500' : (s.salariesCount > 0 ? 'bg-green-500' : 'bg-yellow-500')}`}></div>
+                                                    <div>
+                                                        <div className="font-bold text-slate-700 uppercase">{s.title || 'Unknown File'}</div>
+                                                        <div className="text-slate-400 font-medium">ID: ...{s.id?.slice(-8)}</div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    {s.error ? (
+                                                        <div className="text-red-500 font-bold italic">{s.error}</div>
+                                                    ) : (
+                                                        <div className="text-slate-500">
+                                                            <div>Tabs: {s.tabCount || 0}</div>
+                                                            <div>Records: {s.salariesCount || 0}</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             /* TEACHER DETAIL VIEW */
-                            <div className="space-y-10 text-slate-900">
+                            <div className="space-y-10">
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <div className="flex items-center gap-3 mb-2">
-                                            <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Financial File</span>
+                                            <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Storage Path</span>
                                             <span className="text-slate-300">•</span>
                                             <span className="text-slate-500 text-sm">/staff_folders/{selectedTeacher.toLowerCase().replace(/\s+/g, '_')}</span>
                                         </div>
-                                        <h1 className="text-4xl font-light">{selectedTeacher}</h1>
-                                        <p className="text-slate-500 mt-2">Comprehensive monthly records and fine logs</p>
+                                        <h1 className="text-4xl font-light text-slate-900">{selectedTeacher}</h1>
+                                        <p className="text-slate-500 mt-2">Aggregated monthly records from all spreadsheet sources</p>
                                     </div>
                                 </div>
 
+                                {/* Salary Section */}
                                 <div className="space-y-4">
                                     <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 px-2">Salary History</h3>
                                     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
@@ -235,9 +265,10 @@ export const SalaryApp: React.FC = () => {
                                                         f.month.toLowerCase().includes(s.month.toLowerCase()) ||
                                                         s.month.toLowerCase().includes(f.month.toLowerCase())
                                                     );
+
                                                     return (
                                                         <tr key={i} className="hover:bg-slate-50/30 transition-colors">
-                                                            <td className="px-6 py-4 font-bold">{s.month || '-'}</td>
+                                                            <td className="px-6 py-4 font-bold text-slate-800">{s.month || '-'}</td>
                                                             <td className="px-6 py-4 text-right tabular-nums text-slate-500">{formatCurrency(parseCurrency(s.income))}</td>
                                                             <td className="px-6 py-4 text-right tabular-nums text-green-600 font-medium">+{formatCurrency(parseCurrency(s.bonus))}</td>
                                                             <td className="px-6 py-4 text-right tabular-nums text-red-600 font-medium whitespace-nowrap">
@@ -249,7 +280,7 @@ export const SalaryApp: React.FC = () => {
                                                                 )}
                                                             </td>
                                                             <td className="px-6 py-4 text-right tabular-nums text-blue-600 font-medium">{formatCurrency(parseCurrency(s.recount))}</td>
-                                                            <td className="px-6 py-4 text-right tabular-nums font-bold bg-slate-50/50">{formatCurrency(parseCurrency(s.total))}</td>
+                                                            <td className="px-6 py-4 text-right tabular-nums font-bold text-slate-900 bg-slate-50/50">{formatCurrency(parseCurrency(s.total))}</td>
                                                         </tr>
                                                     );
                                                 })}
@@ -262,8 +293,12 @@ export const SalaryApp: React.FC = () => {
                                         </table>
                                     </div>
                                 </div>
+
+
                             </div>
                         )}
+
+
                     </div>
                 </div>
             </div>
