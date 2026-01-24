@@ -41,7 +41,7 @@ export const SalaryApp: React.FC = () => {
         const lower = t.toLowerCase();
         // Allow unassigned categories but filter out true header/summary labels
         if (lower.includes('unassigned')) return true;
-        const invalidWords = ['total', 'grand total', 'subtotal', 'income', 'month', 'teacher', 'fio'];
+        const invalidWords = ['total', 'grand total', 'subtotal', 'income', 'month', 'teacher', 'fio', 'answer'];
         return !invalidWords.some(w => lower.includes(w));
     }).sort((a, b) => {
         // Put Unassigned at the bottom
@@ -68,10 +68,10 @@ export const SalaryApp: React.FC = () => {
 
     return (
         <div className="flex h-full bg-slate-50 overflow-hidden">
-            {/* Left Sidebar - Teacher Cards */}
+            {/* Left Sidebar - Staff Folders */}
             <div className="w-80 border-r border-gray-200 bg-white flex flex-col shrink-0">
                 <div className="p-6 border-b border-gray-100">
-                    <h2 className="text-xl font-bold text-slate-800 mb-4">Staff Finance</h2>
+                    <h2 className="text-xl font-bold text-slate-800 mb-4 uppercase tracking-tighter">Staff Folders</h2>
                     <div className="relative">
                         <input
                             type="text"
@@ -94,11 +94,13 @@ export const SalaryApp: React.FC = () => {
                     >
                         <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${selectedTeacher === null ? 'bg-white/20' : 'bg-indigo-50 text-indigo-600'}`}>
-                                Σ
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
                             </div>
                             <div>
-                                <div className={`text-sm font-bold ${selectedTeacher === null ? 'text-white' : 'text-slate-800'}`}>Global Overview</div>
-                                <div className={`text-[10px] ${selectedTeacher === null ? 'text-indigo-100' : 'text-slate-400'}`}>System Totals</div>
+                                <div className={`text-sm font-bold ${selectedTeacher === null ? 'text-white' : 'text-slate-800'}`}>System Root</div>
+                                <div className={`text-[10px] ${selectedTeacher === null ? 'text-indigo-100' : 'text-slate-400'}`}>Global Statistics</div>
                             </div>
                         </div>
                     </button>
@@ -118,11 +120,13 @@ export const SalaryApp: React.FC = () => {
                             >
                                 <div className="flex items-center gap-3">
                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold transition-colors ${selectedTeacher === teacher ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-white'}`}>
-                                        {teacher.charAt(0)}
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                        </svg>
                                     </div>
                                     <div className="flex-1 overflow-hidden">
                                         <div className={`text-sm font-bold truncate ${selectedTeacher === teacher ? 'text-indigo-600' : 'text-slate-700'}`}>{teacher}</div>
-                                        <div className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Finance Entry</div>
+                                        <div className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Finance Folder</div>
                                     </div>
                                 </div>
                             </button>
@@ -195,12 +199,12 @@ export const SalaryApp: React.FC = () => {
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <div className="flex items-center gap-3 mb-2">
-                                            <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Financial File</span>
+                                            <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Storage Path</span>
                                             <span className="text-slate-300">•</span>
-                                            <span className="text-slate-500 text-sm">Staff ID: {selectedTeacher.substring(0, 4).toUpperCase()}</span>
+                                            <span className="text-slate-500 text-sm">/staff_folders/{selectedTeacher.toLowerCase().replace(/\s+/g, '_')}</span>
                                         </div>
                                         <h1 className="text-4xl font-light text-slate-900">{selectedTeacher}</h1>
-                                        <p className="text-slate-500 mt-2">Comprehensive salary history and fine logs</p>
+                                        <p className="text-slate-500 mt-2">Aggregated monthly records from all spreadsheet sources</p>
                                     </div>
                                 </div>
 

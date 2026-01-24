@@ -67,26 +67,44 @@ export default async function handler(request, response) {
         for (let i = 1; i < valueRanges.length; i++) {
             const rangeData = valueRanges[i];
             const rows = rangeData.values;
-            const monthName = sheetTitles[i - 1]; // Corresponding month name
+            const sheetTitle = sheetTitles[i - 1]; // Corresponding tab name
 
             if (rows && rows.length > 0) {
+                // Determine if this is a Month sheet or a Teacher sheet
+                const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+                const isMonthSheet = monthNames.includes(sheetTitle.toLowerCase());
+
                 const monthSalaries = rows.map(row => {
                     if (!row || row.length === 0) return null;
 
                     const colA = (row[0] || '').trim();
                     const income = row[1] || '0';
 
-                    // Heuristic: If colA matches the month name, or "Month", or is "Total", it's not a teacher name
-                    const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
-                    const isNotTeacher = !colA ||
-                        monthNames.includes(colA.toLowerCase()) ||
-                        colA.toLowerCase() === 'month' ||
-                        colA.toLowerCase() === 'total' ||
-                        colA.toLowerCase() === 'fio';
+                    // Heuristic: If colA matches standard non-teacher labels
+                    const invalidLabels = [...monthNames, 'month', 'total', 'fio', 'answer'];
+                    const isNotTeacherInColA = !colA || invalidLabels.includes(colA.toLowerCase());
+
+                    let teacherName = '';
+                    let month = '';
+
+                    if (isMonthSheet) {
+                        // In Month sheets: Tab = Month, Col A = Teacher
+                        teacherName = isNotTeacherInColA ? `Unassigned (${sheetTitle})` : colA;
+                        month = sheetTitle;
+                    } else {
+                        // In Teacher sheets: Tab = Teacher Name, Col A = Month
+                        teacherName = sheetTitle;
+                        month = colA || 'Unknown';
+
+                        // If Col A is "Month" or "Total", it's a header/footer row
+                        if (invalidLabels.includes(colA.toLowerCase()) && colA.toLowerCase() !== 'january' && colA.toLowerCase() !== 'february' && colA.toLowerCase() !== 'march' && colA.toLowerCase() !== 'april' && colA.toLowerCase() !== 'may' && colA.toLowerCase() !== 'june' && colA.toLowerCase() !== 'july' && colA.toLowerCase() !== 'august' && colA.toLowerCase() !== 'september' && colA.toLowerCase() !== 'october' && colA.toLowerCase() !== 'november' && colA.toLowerCase() !== 'december') {
+                            return null;
+                        }
+                    }
 
                     return {
-                        teacherName: isNotTeacher ? `Unassigned (${monthName})` : colA,
-                        month: monthName,
+                        teacherName: teacherName,
+                        month: month,
                         income: income,
                         bonus: row[2] || '0',
                         fine: row[3] || '0',
