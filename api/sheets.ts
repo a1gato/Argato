@@ -26,7 +26,13 @@ export default async function handler(request: VercelRequest, response: VercelRe
         const sheets = google.sheets({ version: 'v4', auth });
 
         // 1. Get all Spreadsheet IDs
-        const sheetIds = (process.env.GOOGLE_SHEET_ID || '').split(',').map(id => id.trim()).filter(Boolean);
+        const envIds = (process.env.GOOGLE_SHEET_ID || '').split(',').map(id => id.trim()).filter(Boolean);
+        const registryIds = [
+            "1ozJmAzAVf-ISwa6pvtSrwQSkkKpxE5sUpJVTKH_Xw-k", // Salohiddinov Muslimbek
+            "1_GwFosb5GihN6DFNLQtY2P9vNiBruRm7LO85_WQ-Y8k"  // New Teacher
+        ];
+
+        const sheetIds = Array.from(new Set([...envIds, ...registryIds]));
 
         if (sheetIds.length === 0) {
             return response.status(500).json({ error: 'No Google Sheet IDs configured' });
