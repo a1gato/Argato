@@ -286,25 +286,7 @@ export const SalaryApp: React.FC = () => {
                             </div>
                         )}
 
-                        {/* SYSTEM DIAGNOSTICS */}
-                        <div className="mt-20 p-6 bg-slate-900 rounded-3xl text-[11px] font-mono text-slate-400 border border-slate-800">
-                            <h4 className="font-bold text-white mb-4 uppercase tracking-[0.2em] flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                Core System Analysis
-                            </h4>
-                            <div className="grid grid-cols-2 gap-x-12 gap-y-2">
-                                <p>STATUS: OPERATIONAL</p>
-                                <p>DATA_PURITY: 100%</p>
-                                <p>RECORDS_FETCHED: {data.salaries.length + data.fines.length}</p>
-                                <p>MONTHS_DETECTED: {data.debug?.sheets?.length || 0}</p>
-                            </div>
-                            <div className="mt-6 pt-6 border-t border-slate-800 overflow-x-auto">
-                                <p className="text-white font-bold mb-2">RAW_DATA_SNIPPET (December):</p>
-                                <pre className="text-[9px] text-slate-500 leading-tight">
-                                    {JSON.stringify(data.debug?.rawRows, null, 2)}
-                                </pre>
-                            </div>
-                        </div>
+
                     </div>
                 </div>
             </div>
