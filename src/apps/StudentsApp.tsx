@@ -345,7 +345,7 @@ export const StudentsApp: React.FC = () => {
                         {connStatus === 'Online' ? 'Cloud Sync Online' : connStatus === 'Checking' ? 'Checking Sync...' : 'Sync Station Offline'}
                     </span>
                     <span className="text-slate-200">|</span>
-                    <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-500">DB: 1WkHj...aUw</span>
+                    <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-500">DB: 1ozJm...w-k</span>
                 </div>
                 <div className="flex items-center gap-3">
                     {connStatus === 'Offline' && (

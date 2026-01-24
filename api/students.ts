@@ -6,7 +6,7 @@ import crypto from 'crypto';
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 
 // PRIMARY EDUCATIONAL SHEET
-const PRIMARY_SHEET_ID = "1WkHjKplq7Ruf3u1IxvlW3H_MeTbAXejREKRpFPOOaUw";
+const PRIMARY_SHEET_ID = "1ozJmAzAVf-ISwa6pvtSrwQSkkKpxE5sUpJVTKH_Xw-k";
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
     const { method } = request;

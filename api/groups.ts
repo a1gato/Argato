@@ -21,7 +21,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         const sheets = google.sheets({ version: 'v4', auth });
 
         // Use the PRIMARY sheet for Groups
-        const spreadsheetId = "1WkHjKplq7Ruf3u1IxvlW3H_MeTbAXejREKRpFPOOaUw";
+        const spreadsheetId = "1ozJmAzAVf-ISwa6pvtSrwQSkkKpxE5sUpJVTKH_Xw-k";
 
         switch (method) {
             case 'GET': {
