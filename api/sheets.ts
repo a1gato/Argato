@@ -109,9 +109,14 @@ export default async function handler(request: VercelRequest, response: VercelRe
                         const monthSalaries = rows.map(row => {
                             if (!row || row.length < 2) return null;
 
+                            const colA = (row[0] || '').trim().toLowerCase();
                             const income = (row[1] || '').trim();
 
-                            // Skip header rows or empty rows
+                            // 1. Skip rows that are clearly "Total" or "Subtotal" rows from the spreadsheet
+                            // This prevents "doubling" (Counting rows + then counting the spreadsheet's own total row)
+                            if (colA.includes('total') || colA.includes('subtotal') || colA.includes('itogo') || colA === '---') return null;
+
+                            // 2. Skip header rows or empty rows
                             // PER USER: Ignore caves (cells) for month/name, use tab/title
                             if (!income || income.toLowerCase() === 'income' || isNaN(parseFloat(income.replace(/[$,\s]/g, '')))) return null;
                             if (income === '0' || income === '0.00') {
