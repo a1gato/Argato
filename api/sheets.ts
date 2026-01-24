@@ -123,7 +123,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
                             }
 
                             return {
-                                teacherName: spreadsheetTitle,
+                                teacherName: spreadsheetTitle.trim(),
                                 month: tabTitle,
                                 income: income,
                                 bonus: row[2] || '0',

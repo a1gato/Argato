@@ -123,10 +123,10 @@ export const SalaryApp: React.FC = () => {
                                         <div className={`text-sm font-bold truncate ${selectedTeacher === teacher ? 'text-indigo-600' : 'text-slate-700'}`}>{teacher}</div>
                                         <div className="flex items-center gap-2 mt-0.5">
                                             <div className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Finance Folder</div>
-                                            {data.salaries.some(s => s.teacherName === teacher) && (
+                                            {data.salaries.some(s => s.teacherName.toLowerCase() === teacher.toLowerCase()) && (
                                                 <span className="w-1 h-1 rounded-full bg-green-500" title="Has Salary Record"></span>
                                             )}
-                                            {data.fines.some(f => f.teacherName === teacher) && (
+                                            {data.fines.some(f => f.teacherName.toLowerCase() === teacher.toLowerCase()) && (
                                                 <span className="w-1 h-1 rounded-full bg-red-400" title="Has Fine Record"></span>
                                             )}
                                         </div>
@@ -227,19 +227,33 @@ export const SalaryApp: React.FC = () => {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-50">
-                                                {(teacherSalaries || []).map((s, i) => (
-                                                    <tr key={i} className="hover:bg-slate-50/30 transition-colors">
-                                                        <td className="px-6 py-4 font-bold text-slate-800">{s.month || '-'}</td>
-                                                        <td className="px-6 py-4 text-right tabular-nums text-slate-500">{formatCurrency(parseCurrency(s.income))}</td>
-                                                        <td className="px-6 py-4 text-right tabular-nums text-green-600 font-medium">+{formatCurrency(parseCurrency(s.bonus))}</td>
-                                                        <td className="px-6 py-4 text-right tabular-nums text-red-600 font-medium">-{formatCurrency(parseCurrency(s.fine))}</td>
-                                                        <td className="px-6 py-4 text-right tabular-nums text-blue-600 font-medium">{formatCurrency(parseCurrency(s.recount))}</td>
-                                                        <td className="px-6 py-4 text-right tabular-nums font-bold text-slate-900 bg-slate-50/50">{formatCurrency(parseCurrency(s.total))}</td>
-                                                    </tr>
-                                                ))}
+                                                {(teacherSalaries || []).map((s, i) => {
+                                                    const matchingFines = (teacherFines || []).filter(f =>
+                                                        f.month.toLowerCase().includes(s.month.toLowerCase()) ||
+                                                        s.month.toLowerCase().includes(f.month.toLowerCase())
+                                                    );
+
+                                                    return (
+                                                        <tr key={i} className="hover:bg-slate-50/30 transition-colors">
+                                                            <td className="px-6 py-4 font-bold text-slate-800">{s.month || '-'}</td>
+                                                            <td className="px-6 py-4 text-right tabular-nums text-slate-500">{formatCurrency(parseCurrency(s.income))}</td>
+                                                            <td className="px-6 py-4 text-right tabular-nums text-green-600 font-medium">+{formatCurrency(parseCurrency(s.bonus))}</td>
+                                                            <td className="px-6 py-4 text-right tabular-nums text-red-600 font-medium whitespace-nowrap">
+                                                                <div>-{formatCurrency(parseCurrency(s.fine))}</div>
+                                                                {matchingFines.length > 0 && (
+                                                                    <div className="text-[9px] text-red-400 mt-1 italic font-normal text-right opacity-80">
+                                                                        {matchingFines.map(mf => mf.reason).join(', ')}
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right tabular-nums text-blue-600 font-medium">{formatCurrency(parseCurrency(s.recount))}</td>
+                                                            <td className="px-6 py-4 text-right tabular-nums font-bold text-slate-900 bg-slate-50/50">{formatCurrency(parseCurrency(s.total))}</td>
+                                                        </tr>
+                                                    );
+                                                })}
                                                 {teacherSalaries.length === 0 && (
                                                     <tr>
-                                                        <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">No salary rows recorded for this entry</td>
+                                                        <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">No salary rows recorded for this entry</td>
                                                     </tr>
                                                 )}
                                             </tbody>
@@ -247,38 +261,7 @@ export const SalaryApp: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Fines Section */}
-                                <div className="space-y-4">
-                                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 px-2">Fines Record</h3>
-                                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden text-sm">
-                                        <table className="w-full text-left">
-                                            <thead className="bg-slate-50 border-b border-gray-100">
-                                                <tr>
-                                                    <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Date/Month</th>
-                                                    <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Reason</th>
-                                                    <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Amount</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-50">
-                                                {(teacherFines || []).map((f, i) => (
-                                                    <tr key={i} className="hover:bg-slate-50/30 transition-colors">
-                                                        <td className="px-6 py-4">
-                                                            <div className="font-bold text-slate-800">{f.month}</div>
-                                                            <div className="text-[10px] text-slate-400">{f.date}</div>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-slate-600 italic">"{f.reason}"</td>
-                                                        <td className="px-6 py-4 text-right tabular-nums font-bold text-red-600">{formatCurrency(parseCurrency(f.amount))}</td>
-                                                    </tr>
-                                                ))}
-                                                {teacherFines.length === 0 && (
-                                                    <tr>
-                                                        <td colSpan={3} className="px-6 py-12 text-center text-slate-400 italic">Clean record - No fines found</td>
-                                                    </tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
+
                             </div>
                         )}
 
