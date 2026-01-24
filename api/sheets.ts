@@ -109,6 +109,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
                 }
 
                 // Process Salaries
+                let sheetSalariesCount = 0;
                 for (let i = rangeOffset; i < valueRanges.length; i++) {
                     const rangeData = valueRanges[i];
                     const rows = rangeData.values;
@@ -140,24 +141,31 @@ export default async function handler(request: VercelRequest, response: VercelRe
                         }).filter(Boolean);
 
                         allSalaries = allSalaries.concat(monthSalaries);
+                        sheetSalariesCount += monthSalaries.length;
                     }
                 }
 
-                allDebugSheets.push({ id: currentSheetId, title: spreadsheetTitle });
+                allDebugSheets.push({
+                    id: currentSheetId,
+                    title: spreadsheetTitle,
+                    salariesCount: sheetSalariesCount,
+                    tabCount: monthsToProcess.length
+                });
                 if (rawSnippet.length === 0) rawSnippet = valueRanges[rangeOffset]?.values?.slice(0, 5) || [];
 
             } catch (err: any) {
                 console.error(`Error processing sheet ${currentSheetId}:`, err.message);
+                allDebugSheets.push({ id: currentSheetId, error: err.message });
             }
         }
 
-        // Add Cache Header
-        response.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
+        // Add Cache Header - DISABLE FOR DEBUGGING
+        response.setHeader('Cache-Control', 'no-store, max-age=0');
         return response.status(200).json({
             fines: allFines,
             salaries: allSalaries,
             debug: {
-                sheets: allDebugSheets.map(s => s.title),
+                sheets: allDebugSheets,
                 rawRows: rawSnippet,
                 processedIds: sheetIds
             }
