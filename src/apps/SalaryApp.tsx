@@ -39,9 +39,9 @@ export const SalaryApp: React.FC = () => {
     ])).filter(t => {
         if (!t) return false;
         const lower = t.toLowerCase();
-        // Allow unassigned categories but filter out true header/summary labels
-        if (lower.includes('unassigned')) return true;
-        const invalidWords = ['total', 'grand total', 'subtotal', 'income', 'month', 'teacher', 'fio', 'answer', 'no fines', 'empty', '---'];
+        // Hide ALL Unassigned folders - they were noise/junk
+        if (lower.includes('unassigned')) return false;
+        const invalidWords = ['total', 'grand total', 'subtotal', 'income', 'month', 'teacher', 'fio', 'answer', 'no fines', 'empty', '---', 'score'];
         return !invalidWords.some(w => lower.includes(w));
     }).sort((a, b) => {
         const aIsUnassigned = a.toLowerCase().includes('unassigned');

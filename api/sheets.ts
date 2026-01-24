@@ -46,11 +46,17 @@ export default async function handler(request: VercelRequest, response: VercelRe
                 });
 
                 const spreadsheetTitle = metadataResponse.data.properties?.title || 'Unknown Spreadsheet';
+
+                // Determine if this entire spreadsheet belongs to one teacher
+                const globalWords = ['os it', 'track', 'finance system', 'copy of', 'sheet', 'management'];
+                const titleIsGlobal = globalWords.some(w => spreadsheetTitle.toLowerCase().includes(w));
+                const spreadsheetTeacherName = titleIsGlobal ? null : spreadsheetTitle;
+
                 const sheetTitles = (metadataResponse.data.sheets || [])
                     .map(s => s.properties?.title || '')
                     .filter(title => title && !title.startsWith('Pivot Table'));
 
-                // Efficiently Batch Fetch All Ranges for THIS spreadsheet
+                // Efficiently Batch Fetch All Ranges
                 const hasFinesSheet = sheetTitles.includes('Fines');
                 const monthsToProcess = sheetTitles.filter(t => t !== 'Fines');
 
@@ -74,22 +80,28 @@ export default async function handler(request: VercelRequest, response: VercelRe
                         const spreadsheetFines = finesData.map(row => {
                             let tName = (row[0] || '').trim();
 
-                            // Fallback for Fines
-                            const extremelyGenericTitles = ['sheet', 'untitled', 'os it', 'track', 'finance system'];
-                            const titleIsTooGeneric = extremelyGenericTitles.some(w => spreadsheetTitle.toLowerCase() === w || spreadsheetTitle.toLowerCase() === 'google sheets');
+                            const invalidLabels = ['fio', 'teacher', 'name', 'total', 'fines', 'salary', 'answer', 'empty'];
+                            const colAIsInvalid = !tName || invalidLabels.includes(tName.toLowerCase());
 
-                            if ((!tName || tName.toLowerCase() === 'fio' || tName.toLowerCase() === 'teacher' || tName.toLowerCase() === 'name') && !titleIsTooGeneric) {
-                                tName = spreadsheetTitle;
+                            let finalTeacherName = '';
+                            if (!colAIsInvalid) {
+                                finalTeacherName = tName;
+                            } else if (spreadsheetTeacherName) {
+                                finalTeacherName = spreadsheetTeacherName;
+                            } else {
+                                finalTeacherName = 'Unassigned';
                             }
 
+                            if (tName.toLowerCase() === 'total' || tName.toLowerCase() === 'grand total') return null;
+
                             return {
-                                teacherName: tName,
+                                teacherName: finalTeacherName,
                                 reason: row[1] || '',
                                 month: row[2] || '',
                                 date: row[3] || '',
                                 amount: row[4] || '0',
                             };
-                        });
+                        }).filter(Boolean);
                         allFines = allFines.concat(spreadsheetFines);
                     }
                     rangeOffset = 1;
@@ -110,34 +122,38 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
                             const colA = (row[0] || '').trim();
                             const income = row[1] || '0';
-                            const invalidLabels = [...monthNames, 'month', 'total', 'fio', 'answer'];
-                            const isNotTeacherInColA = !colA || invalidLabels.includes(colA.toLowerCase());
 
-                            let teacherName = '';
+                            const invalidLabels = [...monthNames, 'month', 'total', 'fio', 'answer', 'score', 'empty'];
+                            const colAIsInvalid = !colA || invalidLabels.includes(colA.toLowerCase());
+
+                            if (colA.toLowerCase() === 'total' || colA.toLowerCase().includes('total volume')) return null;
+
+                            let finalTeacherName = '';
                             let month = '';
 
                             if (isMonthSheet) {
-                                teacherName = isNotTeacherInColA ? `Unassigned (${sheetTitle})` : colA;
+                                if (!colAIsInvalid) {
+                                    finalTeacherName = colA;
+                                } else if (spreadsheetTeacherName) {
+                                    finalTeacherName = spreadsheetTeacherName;
+                                } else {
+                                    finalTeacherName = 'Unassigned';
+                                }
                                 month = sheetTitle;
                             } else {
-                                teacherName = sheetTitle;
-                                month = colA || 'Unknown';
-                                if (invalidLabels.includes(colA.toLowerCase()) && !monthNames.includes(colA.toLowerCase())) {
-                                    return null;
+                                if (spreadsheetTeacherName) {
+                                    finalTeacherName = spreadsheetTeacherName;
+                                } else if (!monthNames.includes(sheetTitle.toLowerCase())) {
+                                    finalTeacherName = sheetTitle;
+                                } else {
+                                    finalTeacherName = 'Unassigned';
                                 }
-                            }
-
-                            // Smart Fallback: If it's still unassigned, use the Spreadsheet Title as the teacher name
-                            // unless the spreadsheet title is extremely generic (like "Sheet1").
-                            const extremelyGenericTitles = ['sheet', 'untitled', 'os it', 'track', 'finance system'];
-                            const titleIsTooGeneric = extremelyGenericTitles.some(w => spreadsheetTitle.toLowerCase() === w || spreadsheetTitle.toLowerCase() === 'google sheets');
-
-                            if (teacherName.startsWith('Unassigned') && !titleIsTooGeneric) {
-                                teacherName = spreadsheetTitle;
+                                month = colA || 'Unknown';
+                                if (colAIsInvalid && !monthNames.includes(colA.toLowerCase())) return null;
                             }
 
                             return {
-                                teacherName: teacherName,
+                                teacherName: finalTeacherName,
                                 month: month,
                                 income: income,
                                 bonus: row[2] || '0',
@@ -151,7 +167,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
                     }
                 }
 
-                allDebugSheets.push({ id: currentSheetId, titles: sheetTitles });
+                allDebugSheets.push({ id: currentSheetId, title: spreadsheetTitle });
                 if (rawSnippet.length === 0) rawSnippet = valueRanges[rangeOffset]?.values?.slice(0, 5) || [];
 
             } catch (err: any) {
@@ -165,7 +181,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
             fines: allFines,
             salaries: allSalaries,
             debug: {
-                sheets: allDebugSheets.flatMap(s => s.titles),
+                sheets: allDebugSheets.map(s => s.title),
                 rawRows: rawSnippet,
                 processedIds: sheetIds
             }
