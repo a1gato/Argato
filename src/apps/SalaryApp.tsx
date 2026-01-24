@@ -34,15 +34,20 @@ export const SalaryApp: React.FC = () => {
 
     // Calculate Unique Teachers/Categories for the Sidebar
     const uniqueTeachers = Array.from(new Set([
-        ...data.salaries.map(s => s.teacherName),
-        ...data.fines.map(f => f.teacherName)
+        ...data.salaries.map(s => s.teacherName.trim()),
+        ...data.fines.map(f => f.teacherName.trim())
     ])).filter(t => {
         if (!t) return false;
         const lower = t.toLowerCase();
-        // Hide ALL Unassigned folders - they were noise/junk
+
+        // Only hide if the name IS EXACTLY one of these technical words
+        const technicalWords = ['total', 'grand total', 'subtotal', 'income', 'month', 'teacher', 'fio', 'answer', 'no fines', 'empty', '---', 'score', 'salary', 'finance', 'system root', 'unassigned'];
+        if (technicalWords.includes(lower)) return false;
+
+        // Also hide technical placeholders
         if (lower.includes('unassigned')) return false;
-        const invalidWords = ['total', 'grand total', 'subtotal', 'income', 'month', 'teacher', 'fio', 'answer', 'no fines', 'empty', '---', 'score', 'salary', 'finance', 'system root'];
-        return !invalidWords.some(w => lower.includes(w));
+
+        return t.length > 2;
     }).sort((a, b) => a.localeCompare(b));
 
     // Global Statistics
@@ -53,12 +58,12 @@ export const SalaryApp: React.FC = () => {
         t.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Current selection data
+    // Current selection data - Normalized for Case Insensitivity
     const teacherSalaries = selectedTeacher
-        ? data.salaries.filter(s => s.teacherName === selectedTeacher)
+        ? data.salaries.filter(s => s.teacherName.toLowerCase().trim() === selectedTeacher.toLowerCase().trim())
         : [];
     const teacherFines = selectedTeacher
-        ? data.fines.filter(f => f.teacherName === selectedTeacher)
+        ? data.fines.filter(f => f.teacherName.toLowerCase().trim() === selectedTeacher.toLowerCase().trim())
         : [];
 
     if (loading) {
