@@ -129,7 +129,7 @@ export const SalaryApp: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="flex gap-6 items-center">
+                    <div className="flex gap-4 items-center">
                         <div className="flex gap-4 opacity-70">
                             <span>S: {data.salaries.length}</span>
                             <span>F: {data.fines.length}</span>
@@ -138,6 +138,12 @@ export const SalaryApp: React.FC = () => {
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
+                        </button>
+                        <button onClick={() => window.location.href = '/'} className="bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg transition-all border border-white/20 flex items-center gap-2" title="Exit to Desktop">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                            </svg>
+                            <span className="text-[9px] uppercase tracking-widest">Home</span>
                         </button>
                     </div>
                 </div>
@@ -184,7 +190,7 @@ export const SalaryApp: React.FC = () => {
                                         Usage Instructions
                                     </h3>
                                     <p className="text-indigo-700 text-sm leading-relaxed">
-                                        Use the sidebar to explore individual financial records for each staff member. Categories labeled as "Unassigned" contain spreadsheet rows where a teacher's name was not explicitly provided in Column A.
+                                        Use the dropdown selector in the top header to explore individual financial records for each staff member. All data is aggregated directly from your Google Sheets.
                                     </p>
                                 </div>
                             </div>
