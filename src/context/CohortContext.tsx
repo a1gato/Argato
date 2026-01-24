@@ -7,78 +7,117 @@ export interface Cohort {
     id: string;
     name: string;
     description?: string;
-    teacherId?: string; // ID of the assigned teacher
+    teacherId?: string;
     scheduleType?: ScheduleType;
-    timeSlotId?: string; // ID of the time slot it belongs to
+    timeSlotId?: string;
 }
 
 interface CohortContextType {
     cohorts: Cohort[];
-    addCohort: (name: string, description?: string, teacherId?: string, scheduleType?: ScheduleType, timeSlotId?: string) => void;
-    removeCohort: (id: string) => void;
-    updateCohort: (id: string, name: string, description?: string, teacherId?: string, scheduleType?: ScheduleType, timeSlotId?: string) => void;
-    assignToSlot: (cohortId: string, timeSlotId: string | null) => void;
+    loading: boolean;
+    refreshing: boolean;
+    loadCohorts: () => Promise<void>;
+    addCohort: (name: string, description?: string, teacherId?: string, scheduleType?: ScheduleType, timeSlotId?: string) => Promise<void>;
+    removeCohort: (id: string) => Promise<void>;
+    updateCohort: (id: string, name: string, description?: string, teacherId?: string, scheduleType?: ScheduleType, timeSlotId?: string) => Promise<void>;
+    assignToSlot: (cohortId: string, timeSlotId: string | null) => Promise<void>;
 }
 
 const CohortContext = createContext<CohortContextType | undefined>(undefined);
 
 export const CohortProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { addLog } = useLogs();
-    // Initial data or load from localStorage
-    const [cohorts, setCohorts] = useState<Cohort[]>(() => {
-        const saved = localStorage.getItem('cohorts');
-        return saved ? JSON.parse(saved) : [
-            { id: 'grade-9', name: 'Grade 9', description: 'Freshmen' },
-            { id: 'grade-10', name: 'Grade 10', description: 'Sophomores' },
-            { id: 'grade-11', name: 'Grade 11', description: 'Juniors' },
-            { id: 'grade-12', name: 'Grade 12', description: 'Seniors' }
-        ];
-    });
+    const [cohorts, setCohorts] = useState<Cohort[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-    // Save to localStorage
-    useEffect(() => {
-        localStorage.setItem('cohorts', JSON.stringify(cohorts));
-    }, [cohorts]);
-
-    const addCohort = (name: string, description?: string, teacherId?: string, scheduleType: ScheduleType = 'MWF', timeSlotId?: string) => {
-        const newCohort: Cohort = {
-            id: crypto.randomUUID(),
-            name,
-            description,
-            teacherId,
-            scheduleType,
-            timeSlotId
-        };
-        setCohorts(prev => [...prev, newCohort]);
-        addLog({
-            type: 'cohort',
-            action: 'Group Created',
-            description: `A new ${scheduleType} group "${name}" was created.`
-        });
-    };
-
-    const removeCohort = (id: string) => {
-        const cohortToRemove = cohorts.find(c => c.id === id);
-        if (cohortToRemove) {
-            setCohorts(prev => prev.filter(c => c.id !== id));
-            addLog({
-                type: 'cohort',
-                action: 'Group Deleted',
-                description: `Group "${cohortToRemove.name}" was removed.`
-            });
+    const loadCohorts = async () => {
+        try {
+            const res = await fetch('/api/groups');
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setCohorts(data);
+            }
+        } catch (err) {
+            console.error('Error loading groups:', err);
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
         }
     };
 
-    const updateCohort = (id: string, name: string, description?: string, teacherId?: string, scheduleType?: ScheduleType, timeSlotId?: string) => {
-        setCohorts(prev => prev.map(c => c.id === id ? { ...c, name, description, teacherId, scheduleType, timeSlotId } : c));
+    useEffect(() => {
+        loadCohorts();
+    }, []);
+
+    const addCohort = async (name: string, description?: string, teacherId?: string, scheduleType: ScheduleType = 'MWF', timeSlotId?: string) => {
+        try {
+            const res = await fetch('/api/groups', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description, teacherId, scheduleType, timeSlotId })
+            });
+            const newCohort = await res.json();
+            setCohorts(prev => [...prev, newCohort]);
+
+            addLog({
+                type: 'cohort',
+                action: 'Group Created',
+                description: `A new ${scheduleType} group "${name}" was created.`
+            });
+        } catch (err) {
+            console.error('Error adding cohort:', err);
+            throw err;
+        }
     };
 
-    const assignToSlot = (cohortId: string, timeSlotId: string | null) => {
-        setCohorts(prev => prev.map(c => c.id === cohortId ? { ...c, timeSlotId: timeSlotId || undefined } : c));
+    const removeCohort = async (id: string) => {
+        try {
+            const cohortToRemove = cohorts.find(c => c.id === id);
+            await fetch('/api/groups', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+
+            if (cohortToRemove) {
+                setCohorts(prev => prev.filter(c => c.id !== id));
+                addLog({
+                    type: 'cohort',
+                    action: 'Group Deleted',
+                    description: `Group "${cohortToRemove.name}" was removed.`
+                });
+            }
+        } catch (err) {
+            console.error('Error removing cohort:', err);
+            throw err;
+        }
+    };
+
+    const updateCohort = async (id: string, name: string, description?: string, teacherId?: string, scheduleType?: ScheduleType, timeSlotId?: string) => {
+        try {
+            const res = await fetch('/api/groups', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, name, description, teacherId, scheduleType, timeSlotId })
+            });
+            const updated = await res.json();
+            setCohorts(prev => prev.map(c => c.id === id ? updated : c));
+        } catch (err) {
+            console.error('Error updating cohort:', err);
+            throw err;
+        }
+    };
+
+    const assignToSlot = async (cohortId: string, timeSlotId: string | null) => {
+        const cohort = cohorts.find(c => c.id === cohortId);
+        if (cohort) {
+            await updateCohort(cohortId, cohort.name, cohort.description, cohort.teacherId, cohort.scheduleType, timeSlotId || undefined);
+        }
     };
 
     return (
-        <CohortContext.Provider value={{ cohorts, addCohort, removeCohort, updateCohort, assignToSlot }}>
+        <CohortContext.Provider value={{ cohorts, loading, refreshing, loadCohorts, addCohort, removeCohort, updateCohort, assignToSlot }}>
             {children}
         </CohortContext.Provider>
     );
