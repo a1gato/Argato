@@ -31,8 +31,8 @@ export const Desktop: React.FC = () => {
 
     return (
         <div className="h-screen w-screen relative overflow-hidden bg-gray-50 flex flex-row text-slate-900">
-            {/* Sidebar (Left Bar) - Hidden for Salary App to maximize space */}
-            {activeAppId !== 'salary' && <Sidebar />}
+            {/* Sidebar (Left Bar) */}
+            <Sidebar />
 
             {/* Main Content Area (Full Screen App) */}
             <div className="flex-1 relative h-full bg-white overflow-hidden flex flex-col">
