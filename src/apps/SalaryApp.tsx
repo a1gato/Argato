@@ -41,15 +41,9 @@ export const SalaryApp: React.FC = () => {
         const lower = t.toLowerCase();
         // Hide ALL Unassigned folders - they were noise/junk
         if (lower.includes('unassigned')) return false;
-        const invalidWords = ['total', 'grand total', 'subtotal', 'income', 'month', 'teacher', 'fio', 'answer', 'no fines', 'empty', '---', 'score'];
+        const invalidWords = ['total', 'grand total', 'subtotal', 'income', 'month', 'teacher', 'fio', 'answer', 'no fines', 'empty', '---', 'score', 'salary', 'finance', 'system root'];
         return !invalidWords.some(w => lower.includes(w));
-    }).sort((a, b) => {
-        const aIsUnassigned = a.toLowerCase().includes('unassigned');
-        const bIsUnassigned = b.toLowerCase().includes('unassigned');
-        if (aIsUnassigned && !bIsUnassigned) return 1;
-        if (!aIsUnassigned && bIsUnassigned) return -1;
-        return a.localeCompare(b);
-    });
+    }).sort((a, b) => a.localeCompare(b));
 
     // Global Statistics
     const totalSalaryAmount = (data?.salaries || []).reduce((sum, s) => sum + parseCurrency(s?.total), 0);

@@ -89,11 +89,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
                             // Determine the real Teacher Name for this row
                             let teacherName = '';
                             if (!isInvalidColA) {
-                                teacherName = colA; // Priority: Name in the row
+                                teacherName = colA; // Priority 1: Name in the row
                             } else if (spreadsheetTeacherNameFallback) {
-                                teacherName = spreadsheetTeacherNameFallback; // Fallback: Name in Spreadsheet Title
+                                teacherName = spreadsheetTeacherNameFallback; // Priority 2: Fallback from Spreadsheet Title
                             } else {
-                                return null; // Trash: Skip rows with no identifiable teacher in a master sheet
+                                return null; // Trash: Skip rows with no identifiable teacher
                             }
 
                             if (teacherName.toLowerCase() === 'total' || teacherName.toLowerCase() === 'grand total') return null;
@@ -127,10 +127,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
                             const isInvalidColA = !colA || colA.length < 2 || universalInvalidLabels.includes(colA.toLowerCase());
 
-                            // Priority Logic:
+                            // Priority Logic for Teacher Name:
                             // 1. If Col A has a valid name, use it.
                             // 2. If Col A is invalid, but the spreadsheet title is a teacher name, use that.
-                            // 3. If Col A is invalid, but the TAB title is a teacher name, use that.
+                            // 3. If Col A is invalid, but the TAB title is a teacher name (and not a month), use that.
                             // 4. Otherwise, it's trash.
 
                             let teacherName = '';
@@ -138,7 +138,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
                                 teacherName = colA;
                             } else if (spreadsheetTeacherNameFallback) {
                                 teacherName = spreadsheetTeacherNameFallback;
-                            } else if (!isMonthTab) {
+                            } else if (!isMonthTab && tabTitle && tabTitle.length > 2 && !universalInvalidLabels.includes(tabTitle.toLowerCase())) {
                                 teacherName = tabTitle;
                             } else {
                                 return null;
