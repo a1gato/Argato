@@ -45,12 +45,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
                     spreadsheetId: currentSheetId,
                 });
 
-                const spreadsheetTitle = metadataResponse.data.properties?.title || 'Unknown Spreadsheet';
+                const spreadsheetTitle = (metadataResponse.data.properties?.title || 'Unknown').trim();
 
-                // Determine if this entire spreadsheet belongs to one teacher
-                const globalWords = ['os it', 'track', 'finance system', 'copy of', 'sheet', 'management'];
-                const titleIsGlobal = globalWords.some(w => spreadsheetTitle.toLowerCase().includes(w));
-                const spreadsheetTeacherName = titleIsGlobal ? null : spreadsheetTitle;
+                // Determine if this is a Master/Global sheet
+                const masterSheetWords = ['os it', 'track', 'finance', 'salary', 'master', 'fines', 'fio', 'management', 'payment', 'copy of'];
+                const isMasterSpreadsheet = masterSheetWords.some(w => spreadsheetTitle.toLowerCase().includes(w));
+                const spreadsheetTeacherNameFallback = isMasterSpreadsheet ? null : spreadsheetTitle;
 
                 const sheetTitles = (metadataResponse.data.sheets || [])
                     .map(s => s.properties?.title || '')
@@ -73,29 +73,33 @@ export default async function handler(request: VercelRequest, response: VercelRe
                 const valueRanges = batchResponse.data.valueRanges || [];
                 let rangeOffset = 0;
 
+                const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+                const universalInvalidLabels = [...monthNames, 'month', 'total', 'fio', 'grand total', 'subtotal', 'income', 'salary', 'fines', 'answer', 'score', 'empty', 'unknown', 'name', 'teacher', 'instructor'];
+
                 // Process Fines
                 if (hasFinesSheet) {
                     const finesData = valueRanges[0]?.values;
                     if (finesData) {
                         const spreadsheetFines = finesData.map(row => {
-                            let tName = (row[0] || '').trim();
+                            if (!row || row.length === 0) return null;
+                            const colA = (row[0] || '').trim();
 
-                            const invalidLabels = ['fio', 'teacher', 'name', 'total', 'fines', 'salary', 'answer', 'empty'];
-                            const colAIsInvalid = !tName || invalidLabels.includes(tName.toLowerCase());
+                            const isInvalidColA = !colA || colA.length < 2 || universalInvalidLabels.includes(colA.toLowerCase());
 
-                            let finalTeacherName = '';
-                            if (!colAIsInvalid) {
-                                finalTeacherName = tName;
-                            } else if (spreadsheetTeacherName) {
-                                finalTeacherName = spreadsheetTeacherName;
+                            // Determine the real Teacher Name for this row
+                            let teacherName = '';
+                            if (!isInvalidColA) {
+                                teacherName = colA; // Priority: Name in the row
+                            } else if (spreadsheetTeacherNameFallback) {
+                                teacherName = spreadsheetTeacherNameFallback; // Fallback: Name in Spreadsheet Title
                             } else {
-                                finalTeacherName = 'Unassigned';
+                                return null; // Trash: Skip rows with no identifiable teacher in a master sheet
                             }
 
-                            if (tName.toLowerCase() === 'total' || tName.toLowerCase() === 'grand total') return null;
+                            if (teacherName.toLowerCase() === 'total' || teacherName.toLowerCase() === 'grand total') return null;
 
                             return {
-                                teacherName: finalTeacherName,
+                                teacherName: teacherName,
                                 reason: row[1] || '',
                                 month: row[2] || '',
                                 date: row[3] || '',
@@ -111,49 +115,48 @@ export default async function handler(request: VercelRequest, response: VercelRe
                 for (let i = rangeOffset; i < valueRanges.length; i++) {
                     const rangeData = valueRanges[i];
                     const rows = rangeData.values;
-                    const sheetTitle = monthsToProcess[i - rangeOffset];
+                    const tabTitle = monthsToProcess[i - rangeOffset];
 
                     if (rows && rows.length > 0) {
-                        const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
-                        const isMonthSheet = monthNames.includes(sheetTitle.toLowerCase());
+                        const isMonthTab = monthNames.includes(tabTitle.toLowerCase());
 
                         const monthSalaries = rows.map(row => {
                             if (!row || row.length === 0) return null;
-
                             const colA = (row[0] || '').trim();
                             const income = row[1] || '0';
 
-                            const invalidLabels = [...monthNames, 'month', 'total', 'fio', 'answer', 'score', 'empty'];
-                            const colAIsInvalid = !colA || invalidLabels.includes(colA.toLowerCase());
+                            const isInvalidColA = !colA || colA.length < 2 || universalInvalidLabels.includes(colA.toLowerCase());
 
-                            if (colA.toLowerCase() === 'total' || colA.toLowerCase().includes('total volume')) return null;
+                            // Priority Logic:
+                            // 1. If Col A has a valid name, use it.
+                            // 2. If Col A is invalid, but the spreadsheet title is a teacher name, use that.
+                            // 3. If Col A is invalid, but the TAB title is a teacher name, use that.
+                            // 4. Otherwise, it's trash.
 
-                            let finalTeacherName = '';
-                            let month = '';
-
-                            if (isMonthSheet) {
-                                if (!colAIsInvalid) {
-                                    finalTeacherName = colA;
-                                } else if (spreadsheetTeacherName) {
-                                    finalTeacherName = spreadsheetTeacherName;
-                                } else {
-                                    finalTeacherName = 'Unassigned';
-                                }
-                                month = sheetTitle;
+                            let teacherName = '';
+                            if (!isInvalidColA) {
+                                teacherName = colA;
+                            } else if (spreadsheetTeacherNameFallback) {
+                                teacherName = spreadsheetTeacherNameFallback;
+                            } else if (!isMonthTab) {
+                                teacherName = tabTitle;
                             } else {
-                                if (spreadsheetTeacherName) {
-                                    finalTeacherName = spreadsheetTeacherName;
-                                } else if (!monthNames.includes(sheetTitle.toLowerCase())) {
-                                    finalTeacherName = sheetTitle;
-                                } else {
-                                    finalTeacherName = 'Unassigned';
-                                }
-                                month = colA || 'Unknown';
-                                if (colAIsInvalid && !monthNames.includes(colA.toLowerCase())) return null;
+                                return null;
+                            }
+
+                            // Detect Month
+                            let month = '';
+                            if (isMonthTab) {
+                                month = tabTitle;
+                            } else {
+                                month = isInvalidColA ? (colA || 'Summary') : 'Total';
+                                // If colA contains a month name, use it
+                                const foundMonth = monthNames.find(m => colA.toLowerCase().includes(m));
+                                if (foundMonth) month = foundMonth.charAt(0).toUpperCase() + foundMonth.slice(1);
                             }
 
                             return {
-                                teacherName: finalTeacherName,
+                                teacherName: teacherName,
                                 month: month,
                                 income: income,
                                 bonus: row[2] || '0',

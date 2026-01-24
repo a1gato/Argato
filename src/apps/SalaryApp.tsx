@@ -130,10 +130,10 @@ export const SalaryApp: React.FC = () => {
                                         <div className="flex items-center gap-2 mt-0.5">
                                             <div className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Finance Folder</div>
                                             {data.salaries.some(s => s.teacherName === teacher) && (
-                                                <span className="w-1 h-1 rounded-full bg-green-500" title="Has Salary"></span>
+                                                <span className="w-1 h-1 rounded-full bg-green-500" title="Has Salary Record"></span>
                                             )}
                                             {data.fines.some(f => f.teacherName === teacher) && (
-                                                <span className="w-1 h-1 rounded-full bg-red-500" title="Has Fine"></span>
+                                                <span className="w-1 h-1 rounded-full bg-red-400" title="Has Fine Record"></span>
                                             )}
                                         </div>
                                     </div>
