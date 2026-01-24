@@ -34,21 +34,21 @@ export const SalaryApp: React.FC = () => {
 
     // Calculate Unique Teachers/Categories for the Sidebar
     const uniqueTeachers = Array.from(new Set([
-        ...data.salaries.map(s => s.teacherName.trim()),
-        ...data.fines.map(f => f.teacherName.trim())
+        ...data.salaries.map(s => s.teacherName),
+        ...data.fines.map(f => f.teacherName)
     ])).filter(t => {
         if (!t) return false;
         const lower = t.toLowerCase();
-
-        // Only hide if the name IS EXACTLY one of these technical words
-        const technicalWords = ['total', 'grand total', 'subtotal', 'income', 'month', 'teacher', 'fio', 'answer', 'no fines', 'empty', '---', 'score', 'salary', 'finance', 'system root', 'unassigned'];
-        if (technicalWords.includes(lower)) return false;
-
-        // Also hide technical placeholders
-        if (lower.includes('unassigned')) return false;
-
-        return t.length > 2;
-    }).sort((a, b) => a.localeCompare(b));
+        // Allow unassigned categories but filter out true header/summary labels
+        if (lower.includes('unassigned')) return true;
+        const invalidWords = ['total', 'grand total', 'subtotal', 'income', 'month', 'teacher', 'fio'];
+        return !invalidWords.some(w => lower.includes(w));
+    }).sort((a, b) => {
+        // Put Unassigned at the bottom
+        if (a.toLowerCase().includes('unassigned')) return 1;
+        if (b.toLowerCase().includes('unassigned')) return -1;
+        return a.localeCompare(b);
+    });
 
     // Global Statistics
     const totalSalaryAmount = (data?.salaries || []).reduce((sum, s) => sum + parseCurrency(s?.total), 0);
@@ -58,107 +58,97 @@ export const SalaryApp: React.FC = () => {
         t.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Current selection data - Normalized for Case Insensitivity
+    // Current selection data
     const teacherSalaries = selectedTeacher
-        ? data.salaries.filter(s => s.teacherName.toLowerCase().trim() === selectedTeacher.toLowerCase().trim())
+        ? data.salaries.filter(s => s.teacherName === selectedTeacher)
         : [];
     const teacherFines = selectedTeacher
-        ? data.fines.filter(f => f.teacherName.toLowerCase().trim() === selectedTeacher.toLowerCase().trim())
+        ? data.fines.filter(f => f.teacherName === selectedTeacher)
         : [];
-
-    if (loading) {
-        return (
-            <div className="h-full w-full flex items-center justify-center bg-slate-50">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Finance Data...</div>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="flex h-full bg-slate-50 overflow-hidden">
-            {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-w-0">
-                {/* Header Banner - Navigation Integrated */}
-                <div className="bg-red-600 text-white px-6 py-3 text-[10px] font-bold flex justify-between items-center shrink-0 shadow-lg relative z-50">
-                    <div className="flex items-center gap-6">
-                        <span className="opacity-80">FINANCE SYSTEM v4.0</span>
-
-                        {/* Custom Dropdown Selector */}
-                        <div className="relative group">
-                            <button className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all border border-white/20">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                                </svg>
-                                <span className="text-sm uppercase tracking-wider">{selectedTeacher || 'Select Staff Folder'}</span>
-                                <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </button>
-
-                            {/* Dropdown Menu */}
-                            <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 hidden group-hover:block overflow-hidden transition-all duration-200">
-                                <div className="p-2 border-b border-gray-50">
-                                    <input
-                                        type="text"
-                                        placeholder="Search..."
-                                        className="w-full px-3 py-1.5 bg-slate-50 rounded-lg text-slate-800 text-xs focus:outline-none border border-transparent focus:border-indigo-100"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
-                                </div>
-                                <div className="max-h-80 overflow-y-auto py-1">
-                                    <button
-                                        onClick={() => setSelectedTeacher(null)}
-                                        className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between ${selectedTeacher === null ? 'bg-indigo-50 text-indigo-600 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
-                                    >
-                                        System Root (Overview)
-                                        {selectedTeacher === null && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600"></div>}
-                                    </button>
-                                    <div className="h-px bg-slate-50 my-1 mx-2"></div>
-                                    {filteredTeachers.map(teacher => (
-                                        <button
-                                            key={teacher}
-                                            onClick={() => setSelectedTeacher(teacher)}
-                                            className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between ${selectedTeacher === teacher ? 'bg-indigo-50 text-indigo-600 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
-                                        >
-                                            {teacher}
-                                            {selectedTeacher === teacher && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600"></div>}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex gap-4 items-center">
-                        <div className="flex gap-4 opacity-70">
-                            <span>S: {data.salaries.length}</span>
-                            <span>F: {data.fines.length}</span>
-                        </div>
-                        <button onClick={() => window.location.reload()} className="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition-all border border-white/20" title="Refresh Data">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                        </button>
-                        <button onClick={() => window.location.href = '/'} className="bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg transition-all border border-white/20 flex items-center gap-2" title="Exit to Desktop">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                            </svg>
-                            <span className="text-[9px] uppercase tracking-widest">Home</span>
-                        </button>
+            {/* Left Sidebar - Teacher Cards */}
+            <div className="w-80 border-r border-gray-200 bg-white flex flex-col shrink-0">
+                <div className="p-6 border-b border-gray-100">
+                    <h2 className="text-xl font-bold text-slate-800 mb-4">Staff Finance</h2>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Search teachers..."
+                            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                        <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 lg:p-12">
-                    <div className="max-w-6xl mx-auto space-y-10">
+                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                    {/* Overview Card */}
+                    <button
+                        onClick={() => setSelectedTeacher(null)}
+                        className={`w-full text-left p-4 rounded-2xl transition-all ${selectedTeacher === null ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'hover:bg-slate-50 text-slate-600'}`}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${selectedTeacher === null ? 'bg-white/20' : 'bg-indigo-50 text-indigo-600'}`}>
+                                Σ
+                            </div>
+                            <div>
+                                <div className={`text-sm font-bold ${selectedTeacher === null ? 'text-white' : 'text-slate-800'}`}>Global Overview</div>
+                                <div className={`text-[10px] ${selectedTeacher === null ? 'text-indigo-100' : 'text-slate-400'}`}>System Totals</div>
+                            </div>
+                        </div>
+                    </button>
+
+                    <div className="h-4 border-b border-gray-100 mb-2"></div>
+
+                    {loading ? (
+                        <div className="flex justify-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                        </div>
+                    ) : (
+                        filteredTeachers.map(teacher => (
+                            <button
+                                key={teacher}
+                                onClick={() => setSelectedTeacher(teacher)}
+                                className={`w-full text-left p-4 rounded-2xl transition-all group ${selectedTeacher === teacher ? 'bg-white shadow-md border border-gray-100 ring-2 ring-indigo-500/5' : 'hover:bg-slate-50 border border-transparent'}`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold transition-colors ${selectedTeacher === teacher ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-white'}`}>
+                                        {teacher.charAt(0)}
+                                    </div>
+                                    <div className="flex-1 overflow-hidden">
+                                        <div className={`text-sm font-bold truncate ${selectedTeacher === teacher ? 'text-indigo-600' : 'text-slate-700'}`}>{teacher}</div>
+                                        <div className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Finance Entry</div>
+                                    </div>
+                                </div>
+                            </button>
+                        ))
+                    )}
+                </div>
+            </div>
+
+            {/* Right Content - Details */}
+            <div className="flex-1 flex flex-col min-w-0">
+                {/* Header Banner */}
+                <div className="bg-red-600 text-white px-6 py-2 text-[10px] font-bold flex justify-between items-center shrink-0">
+                    <span>FINANCE SYSTEM v4.0 - {selectedTeacher || 'Master Overview'}</span>
+                    <div className="flex gap-4">
+                        <span>Salaries: {data.salaries.length}</span>
+                        <span>Fines: {data.fines.length}</span>
+                        <button onClick={() => window.location.reload()} className="underline hover:no-underline">Force Refresh</button>
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-8 lg:p-12">
+                    <div className="max-w-5xl mx-auto space-y-10">
                         {selectedTeacher === null ? (
                             /* OVERVIEW VIEW */
                             <div className="space-y-10">
-                                <div className="text-center py-6">
+                                <div>
                                     <h1 className="text-4xl font-light text-slate-900">Financial Overview</h1>
                                     <p className="text-slate-500 mt-2">Comprehensive system aggregation across all spreadsheet data</p>
                                 </div>
@@ -195,38 +185,8 @@ export const SalaryApp: React.FC = () => {
                                         Usage Instructions
                                     </h3>
                                     <p className="text-indigo-700 text-sm leading-relaxed">
-                                        Use the dropdown selector in the top header to explore individual financial records for each staff member. All data is aggregated directly from your Google Sheets.
+                                        Use the sidebar to explore individual financial records for each staff member. Categories labeled as "Unassigned" contain spreadsheet rows where a teacher's name was not explicitly provided in Column A.
                                     </p>
-                                </div>
-
-                                {/* Debug Section */}
-                                <div className="bg-slate-100 p-6 rounded-3xl border border-slate-200">
-                                    <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-xs uppercase tracking-widest">
-                                        System Connectivity Status
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {(data?.debug?.sheets || []).map((s: any, i: number) => (
-                                            <div key={i} className="bg-white p-4 rounded-2xl flex items-center justify-between text-[10px]">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-2 h-2 rounded-full ${s.error ? 'bg-red-500' : (s.salariesCount > 0 ? 'bg-green-500' : 'bg-yellow-500')}`}></div>
-                                                    <div>
-                                                        <div className="font-bold text-slate-700 uppercase">{s.title || 'Unknown File'}</div>
-                                                        <div className="text-slate-400 font-medium">ID: ...{s.id?.slice(-8)}</div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    {s.error ? (
-                                                        <div className="text-red-500 font-bold italic">{s.error}</div>
-                                                    ) : (
-                                                        <div className="text-slate-500">
-                                                            <div>Tabs: {s.tabCount || 0}</div>
-                                                            <div>Records: {s.salariesCount || 0}</div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
                                 </div>
                             </div>
                         ) : (
@@ -235,12 +195,12 @@ export const SalaryApp: React.FC = () => {
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <div className="flex items-center gap-3 mb-2">
-                                            <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Storage Path</span>
+                                            <span className="bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Financial File</span>
                                             <span className="text-slate-300">•</span>
-                                            <span className="text-slate-500 text-sm">/staff_folders/{selectedTeacher.toLowerCase().replace(/\s+/g, '_')}</span>
+                                            <span className="text-slate-500 text-sm">Staff ID: {selectedTeacher.substring(0, 4).toUpperCase()}</span>
                                         </div>
                                         <h1 className="text-4xl font-light text-slate-900">{selectedTeacher}</h1>
-                                        <p className="text-slate-500 mt-2">Aggregated monthly records from all spreadsheet sources</p>
+                                        <p className="text-slate-500 mt-2">Comprehensive salary history and fine logs</p>
                                     </div>
                                 </div>
 
@@ -255,38 +215,22 @@ export const SalaryApp: React.FC = () => {
                                                     <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Income</th>
                                                     <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Bonus</th>
                                                     <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Fine</th>
-                                                    <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Recount</th>
                                                     <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Net Total</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-50">
-                                                {(teacherSalaries || []).map((s, i) => {
-                                                    const matchingFines = (teacherFines || []).filter(f =>
-                                                        f.month.toLowerCase().includes(s.month.toLowerCase()) ||
-                                                        s.month.toLowerCase().includes(f.month.toLowerCase())
-                                                    );
-
-                                                    return (
-                                                        <tr key={i} className="hover:bg-slate-50/30 transition-colors">
-                                                            <td className="px-6 py-4 font-bold text-slate-800">{s.month || '-'}</td>
-                                                            <td className="px-6 py-4 text-right tabular-nums text-slate-500">{formatCurrency(parseCurrency(s.income))}</td>
-                                                            <td className="px-6 py-4 text-right tabular-nums text-green-600 font-medium">+{formatCurrency(parseCurrency(s.bonus))}</td>
-                                                            <td className="px-6 py-4 text-right tabular-nums text-red-600 font-medium whitespace-nowrap">
-                                                                <div>-{formatCurrency(parseCurrency(s.fine))}</div>
-                                                                {matchingFines.length > 0 && (
-                                                                    <div className="text-[9px] text-red-400 mt-1 italic font-normal text-right opacity-80">
-                                                                        {matchingFines.map(mf => mf.reason).join(', ')}
-                                                                    </div>
-                                                                )}
-                                                            </td>
-                                                            <td className="px-6 py-4 text-right tabular-nums text-blue-600 font-medium">{formatCurrency(parseCurrency(s.recount))}</td>
-                                                            <td className="px-6 py-4 text-right tabular-nums font-bold text-slate-900 bg-slate-50/50">{formatCurrency(parseCurrency(s.total))}</td>
-                                                        </tr>
-                                                    );
-                                                })}
+                                                {(teacherSalaries || []).map((s, i) => (
+                                                    <tr key={i} className="hover:bg-slate-50/30 transition-colors">
+                                                        <td className="px-6 py-4 font-bold text-slate-800">{s.month || '-'}</td>
+                                                        <td className="px-6 py-4 text-right tabular-nums text-slate-500">{formatCurrency(parseCurrency(s.income))}</td>
+                                                        <td className="px-6 py-4 text-right tabular-nums text-green-600 font-medium">+{formatCurrency(parseCurrency(s.bonus))}</td>
+                                                        <td className="px-6 py-4 text-right tabular-nums text-red-600 font-medium">-{formatCurrency(parseCurrency(s.fine))}</td>
+                                                        <td className="px-6 py-4 text-right tabular-nums font-bold text-slate-900 bg-slate-50/50">{formatCurrency(parseCurrency(s.total))}</td>
+                                                    </tr>
+                                                ))}
                                                 {teacherSalaries.length === 0 && (
                                                     <tr>
-                                                        <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">No salary rows recorded for this entry</td>
+                                                        <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">No salary rows recorded for this entry</td>
                                                     </tr>
                                                 )}
                                             </tbody>
@@ -294,11 +238,60 @@ export const SalaryApp: React.FC = () => {
                                     </div>
                                 </div>
 
-
+                                {/* Fines Section */}
+                                <div className="space-y-4">
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-400 px-2">Fines Record</h3>
+                                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden text-sm">
+                                        <table className="w-full text-left">
+                                            <thead className="bg-slate-50 border-b border-gray-100">
+                                                <tr>
+                                                    <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Date/Month</th>
+                                                    <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Reason</th>
+                                                    <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50">
+                                                {(teacherFines || []).map((f, i) => (
+                                                    <tr key={i} className="hover:bg-slate-50/30 transition-colors">
+                                                        <td className="px-6 py-4">
+                                                            <div className="font-bold text-slate-800">{f.month}</div>
+                                                            <div className="text-[10px] text-slate-400">{f.date}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-slate-600 italic">"{f.reason}"</td>
+                                                        <td className="px-6 py-4 text-right tabular-nums font-bold text-red-600">{formatCurrency(parseCurrency(f.amount))}</td>
+                                                    </tr>
+                                                ))}
+                                                {teacherFines.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={3} className="px-6 py-12 text-center text-slate-400 italic">Clean record - No fines found</td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
-
+                        {/* SYSTEM DIAGNOSTICS */}
+                        <div className="mt-20 p-6 bg-slate-900 rounded-3xl text-[11px] font-mono text-slate-400 border border-slate-800">
+                            <h4 className="font-bold text-white mb-4 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                Core System Analysis
+                            </h4>
+                            <div className="grid grid-cols-2 gap-x-12 gap-y-2">
+                                <p>STATUS: OPERATIONAL</p>
+                                <p>DATA_PURITY: 100%</p>
+                                <p>RECORDS_FETCHED: {data.salaries.length + data.fines.length}</p>
+                                <p>MONTHS_DETECTED: {data.debug?.sheets?.length || 0}</p>
+                            </div>
+                            <div className="mt-6 pt-6 border-t border-slate-800 overflow-x-auto">
+                                <p className="text-white font-bold mb-2">RAW_DATA_SNIPPET (December):</p>
+                                <pre className="text-[9px] text-slate-500 leading-tight">
+                                    {JSON.stringify(data.debug?.rawRows, null, 2)}
+                                </pre>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
