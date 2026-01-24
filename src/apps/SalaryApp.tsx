@@ -199,44 +199,6 @@ export const SalaryApp: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100">
-                                    <h3 className="font-bold text-indigo-900 mb-2 flex items-center gap-2">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                        </svg>
-                                        Usage Instructions
-                                    </h3>
-                                    <p className="text-indigo-700 text-sm leading-relaxed">
-                                        Use the dropdown selector in the top header to explore individual financial records for each staff member. All data is aggregated directly from your Google Sheets.
-                                    </p>
-                                </div>
-
-                                <div className="bg-slate-100 p-6 rounded-3xl border border-slate-200">
-                                    <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-xs uppercase tracking-widest">
-                                        System Connectivity Status
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {(data?.debug?.sheets || []).map((s: any, i: number) => (
-                                            <div key={i} className="bg-white p-4 rounded-2xl flex items-center justify-between text-[10px]">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-2 h-2 rounded-full ${s.error ? 'bg-red-500' : (s.salariesCount > 0 ? 'bg-green-500' : 'bg-yellow-500')}`}></div>
-                                                    <div>
-                                                        <div className="font-bold text-slate-700 uppercase">{s.title || 'Unknown File'}</div>
-                                                        <div className="text-slate-400 font-medium whitespace-pre">ID: ...{s.id?.slice(-8)}</div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    {s.error ? <div className="text-red-500 font-bold italic">{s.error}</div> : (
-                                                        <div className="text-slate-500">
-                                                            <div>Tabs: {s.tabCount || 0}</div>
-                                                            <div>Records: {s.salariesCount || 0}</div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
                             </div>
                         ) : (
                             /* TEACHER DETAIL VIEW */
