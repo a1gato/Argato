@@ -74,11 +74,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
                         const spreadsheetFines = finesData.map(row => {
                             let tName = (row[0] || '').trim();
 
-                            // Fallback for Fines as well
-                            const genericSheetWords = ['salary', 'finance', 'os it', 'track', 'copy of'];
-                            const titleIsGeneric = genericSheetWords.some(w => spreadsheetTitle.toLowerCase().includes(w));
+                            // Fallback for Fines
+                            const extremelyGenericTitles = ['sheet', 'untitled', 'os it', 'track', 'finance system'];
+                            const titleIsTooGeneric = extremelyGenericTitles.some(w => spreadsheetTitle.toLowerCase() === w || spreadsheetTitle.toLowerCase() === 'google sheets');
 
-                            if ((!tName || tName.toLowerCase() === 'fio' || tName.toLowerCase() === 'teacher') && !titleIsGeneric) {
+                            if ((!tName || tName.toLowerCase() === 'fio' || tName.toLowerCase() === 'teacher' || tName.toLowerCase() === 'name') && !titleIsTooGeneric) {
                                 tName = spreadsheetTitle;
                             }
 
@@ -127,12 +127,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
                                 }
                             }
 
-                            // Smart Fallback: If it's still unassigned, and the spreadsheet title doesn't look generic,
-                            // use the Spreadsheet Title as the teacher name.
-                            const genericSheetWords = ['salary', 'finance', 'os it', 'track', 'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december', 'copy of'];
-                            const titleIsGeneric = genericSheetWords.some(w => spreadsheetTitle.toLowerCase().includes(w));
+                            // Smart Fallback: If it's still unassigned, use the Spreadsheet Title as the teacher name
+                            // unless the spreadsheet title is extremely generic (like "Sheet1").
+                            const extremelyGenericTitles = ['sheet', 'untitled', 'os it', 'track', 'finance system'];
+                            const titleIsTooGeneric = extremelyGenericTitles.some(w => spreadsheetTitle.toLowerCase() === w || spreadsheetTitle.toLowerCase() === 'google sheets');
 
-                            if (teacherName.startsWith('Unassigned') && !titleIsGeneric) {
+                            if (teacherName.startsWith('Unassigned') && !titleIsTooGeneric) {
                                 teacherName = spreadsheetTitle;
                             }
 
