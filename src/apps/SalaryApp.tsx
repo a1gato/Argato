@@ -222,6 +222,7 @@ export const SalaryApp: React.FC = () => {
                                                     <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Income</th>
                                                     <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Bonus</th>
                                                     <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Fine</th>
+                                                    <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Recount</th>
                                                     <th className="px-6 py-4 font-bold text-slate-500 uppercase tracking-wider text-[10px] text-right">Net Total</th>
                                                 </tr>
                                             </thead>
@@ -232,6 +233,7 @@ export const SalaryApp: React.FC = () => {
                                                         <td className="px-6 py-4 text-right tabular-nums text-slate-500">{formatCurrency(parseCurrency(s.income))}</td>
                                                         <td className="px-6 py-4 text-right tabular-nums text-green-600 font-medium">+{formatCurrency(parseCurrency(s.bonus))}</td>
                                                         <td className="px-6 py-4 text-right tabular-nums text-red-600 font-medium">-{formatCurrency(parseCurrency(s.fine))}</td>
+                                                        <td className="px-6 py-4 text-right tabular-nums text-blue-600 font-medium">{formatCurrency(parseCurrency(s.recount))}</td>
                                                         <td className="px-6 py-4 text-right tabular-nums font-bold text-slate-900 bg-slate-50/50">{formatCurrency(parseCurrency(s.total))}</td>
                                                     </tr>
                                                 ))}
