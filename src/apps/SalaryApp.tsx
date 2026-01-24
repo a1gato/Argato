@@ -306,6 +306,17 @@ export const SalaryApp: React.FC = () => {
                                     </div>
                                 </div>
 
+                                {/* Summary Card for Visibility */}
+                                <div className="flex justify-end pt-6">
+                                    <div className="bg-indigo-600 p-8 rounded-[40px] text-white shadow-2xl shadow-indigo-200 min-w-[300px]">
+                                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-60 mb-1">Final Disbursed Balance</div>
+                                        <div className="text-4xl font-black tabular-nums tracking-tight">
+                                            {formatCurrency(teacherSalariesRaw.reduce((sum, s) => sum + parseCurrency(s.total), 0))}
+                                        </div>
+                                        <div className="h-1.5 w-12 bg-white/20 rounded-full mt-4"></div>
+                                    </div>
+                                </div>
+
 
                             </div>
                         )}
