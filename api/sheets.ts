@@ -45,12 +45,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
                     spreadsheetId: currentSheetId,
                 });
 
-                const spreadsheetTitle = (metadataResponse.data.properties?.title || 'Unknown').trim();
-
-                // Determine if this is a Master/Global sheet
-                const masterSheetWords = ['os it', 'track', 'finance', 'salary', 'master', 'fines', 'fio', 'management', 'payment', 'copy of'];
-                const isMasterSpreadsheet = masterSheetWords.some(w => spreadsheetTitle.toLowerCase().includes(w));
-                const spreadsheetTeacherNameFallback = isMasterSpreadsheet ? null : spreadsheetTitle;
+                // PER USER: Name = Spreadsheet Title
+                const spreadsheetTitle = (metadataResponse.data.properties?.title || 'Unknown Staff').trim();
 
                 const sheetTitles = (metadataResponse.data.sheets || [])
                     .map(s => s.properties?.title || '')
@@ -73,37 +69,21 @@ export default async function handler(request: VercelRequest, response: VercelRe
                 const valueRanges = batchResponse.data.valueRanges || [];
                 let rangeOffset = 0;
 
-                const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
-                const universalInvalidLabels = [...monthNames, 'month', 'total', 'fio', 'grand total', 'subtotal', 'income', 'salary', 'fines', 'answer', 'score', 'empty', 'unknown', 'name', 'teacher', 'instructor'];
-
                 // Process Fines
                 if (hasFinesSheet) {
                     const finesData = valueRanges[0]?.values;
                     if (finesData) {
                         const spreadsheetFines = finesData.map(row => {
-                            if (!row || row.length === 0) return null;
-                            const colA = (row[0] || '').trim();
-
-                            const isInvalidColA = !colA || colA.length < 2 || universalInvalidLabels.includes(colA.toLowerCase());
-
-                            // Determine the real Teacher Name for this row
-                            let teacherName = '';
-                            if (!isInvalidColA) {
-                                teacherName = colA; // Priority 1: Name in the row
-                            } else if (spreadsheetTeacherNameFallback) {
-                                teacherName = spreadsheetTeacherNameFallback; // Priority 2: Fallback from Spreadsheet Title
-                            } else {
-                                return null; // Trash: Skip rows with no identifiable teacher
-                            }
-
-                            if (teacherName.toLowerCase() === 'total' || teacherName.toLowerCase() === 'grand total') return null;
+                            if (!row || row.length < 5) return null;
+                            const amount = (row[4] || '').trim();
+                            if (!amount || amount === '0' || amount === '0.00' || isNaN(parseFloat(amount.replace(/[$,\s]/g, '')))) return null;
 
                             return {
-                                teacherName: teacherName,
-                                reason: row[1] || '',
-                                month: row[2] || '',
+                                teacherName: spreadsheetTitle,
+                                reason: row[1] || 'Fine',
+                                month: row[2] || 'Unspecified',
                                 date: row[3] || '',
-                                amount: row[4] || '0',
+                                amount: amount,
                             };
                         }).filter(Boolean);
                         allFines = allFines.concat(spreadsheetFines);
@@ -121,12 +101,15 @@ export default async function handler(request: VercelRequest, response: VercelRe
                         const monthSalaries = rows.map(row => {
                             if (!row || row.length < 2) return null;
 
-                            const colA = (row[0] || '').trim();
-                            const income = (row[1] || '0').trim();
+                            const income = (row[1] || '').trim();
 
                             // Skip header rows or empty rows
-                            if (!income || income.toLowerCase() === 'income' || colA.toLowerCase() === 'month') return null;
-                            if (income === '0.00' && (row[5] || '0') === '0.00') return null;
+                            // PER USER: Ignore caves (cells) for month/name, use tab/title
+                            if (!income || income.toLowerCase() === 'income' || isNaN(parseFloat(income.replace(/[$,\s]/g, '')))) return null;
+                            if (income === '0' || income === '0.00') {
+                                const hasValue = row.slice(2, 6).some(v => v && v !== '0' && v !== '0.00');
+                                if (!hasValue) return null;
+                            }
 
                             return {
                                 teacherName: spreadsheetTitle,
