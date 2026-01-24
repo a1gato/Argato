@@ -58,8 +58,8 @@ export const SalaryApp: React.FC = () => {
         t.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Current selection data - Normalized for Case Insensitivity
-    const teacherSalaries = selectedTeacher
+    // Current selection data - Raw individual monthly records
+    const teacherSalariesRaw = selectedTeacher
         ? data.salaries.filter(s => s.teacherName.toLowerCase().trim() === selectedTeacher.toLowerCase().trim())
         : [];
     const teacherFines = selectedTeacher
@@ -260,7 +260,7 @@ export const SalaryApp: React.FC = () => {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-50">
-                                                {(teacherSalaries || []).map((s, i) => {
+                                                {(teacherSalariesRaw || []).map((s, i) => {
                                                     const matchingFines = (teacherFines || []).filter(f =>
                                                         f.month.toLowerCase().includes(s.month.toLowerCase()) ||
                                                         s.month.toLowerCase().includes(f.month.toLowerCase())
@@ -284,12 +284,24 @@ export const SalaryApp: React.FC = () => {
                                                         </tr>
                                                     );
                                                 })}
-                                                {teacherSalaries.length === 0 && (
+                                                {teacherSalariesRaw.length === 0 && (
                                                     <tr>
                                                         <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">No salary rows recorded for this entry</td>
                                                     </tr>
                                                 )}
                                             </tbody>
+                                            {teacherSalariesRaw.length > 0 && (
+                                                <tfoot className="bg-indigo-50/50 border-t-2 border-indigo-100">
+                                                    <tr className="font-black text-slate-900">
+                                                        <td className="px-6 py-4 uppercase tracking-widest text-[10px]">Total</td>
+                                                        <td className="px-6 py-4 text-right tabular-nums">{formatCurrency(teacherSalariesRaw.reduce((sum, s) => sum + parseCurrency(s.income), 0))}</td>
+                                                        <td className="px-6 py-4 text-right tabular-nums text-green-700">{formatCurrency(teacherSalariesRaw.reduce((sum, s) => sum + parseCurrency(s.bonus), 0))}</td>
+                                                        <td className="px-6 py-4 text-right tabular-nums text-red-700">{formatCurrency(teacherSalariesRaw.reduce((sum, s) => sum + parseCurrency(s.fine), 0))}</td>
+                                                        <td className="px-6 py-4 text-right tabular-nums text-blue-700">{formatCurrency(teacherSalariesRaw.reduce((sum, s) => sum + parseCurrency(s.recount), 0))}</td>
+                                                        <td className="px-6 py-4 text-right tabular-nums bg-indigo-600 text-white shadow-inner">{formatCurrency(teacherSalariesRaw.reduce((sum, s) => sum + parseCurrency(s.total), 0))}</td>
+                                                    </tr>
+                                                </tfoot>
+                                            )}
                                         </table>
                                     </div>
                                 </div>
