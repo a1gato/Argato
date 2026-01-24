@@ -61,101 +61,93 @@ export const SalaryApp: React.FC = () => {
         ? data.fines.filter(f => f.teacherName === selectedTeacher)
         : [];
 
-    return (
-        <div className="flex h-full bg-slate-50 overflow-hidden">
-            {/* Left Sidebar - Staff Folders */}
-            <div className="w-80 border-r border-gray-200 bg-white flex flex-col shrink-0">
-                <div className="p-6 border-b border-gray-100">
-                    <h2 className="text-xl font-bold text-slate-800 mb-4 uppercase tracking-tighter">Staff Folders</h2>
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Search teachers..."
-                            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                        <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                    {/* Overview Card */}
-                    <button
-                        onClick={() => setSelectedTeacher(null)}
-                        className={`w-full text-left p-4 rounded-2xl transition-all ${selectedTeacher === null ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'hover:bg-slate-50 text-slate-600'}`}
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold ${selectedTeacher === null ? 'bg-white/20' : 'bg-indigo-50 text-indigo-600'}`}>
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                </svg>
-                            </div>
-                            <div>
-                                <div className={`text-sm font-bold ${selectedTeacher === null ? 'text-white' : 'text-slate-800'}`}>System Root</div>
-                                <div className={`text-[10px] ${selectedTeacher === null ? 'text-indigo-100' : 'text-slate-400'}`}>Global Statistics</div>
-                            </div>
-                        </div>
-                    </button>
-
-                    <div className="h-4 border-b border-gray-100 mb-2"></div>
-
-                    {loading ? (
-                        <div className="flex justify-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                        </div>
-                    ) : (
-                        filteredTeachers.map(teacher => (
-                            <button
-                                key={teacher}
-                                onClick={() => setSelectedTeacher(teacher)}
-                                className={`w-full text-left p-4 rounded-2xl transition-all group ${selectedTeacher === teacher ? 'bg-white shadow-md border border-gray-100 ring-2 ring-indigo-500/5' : 'hover:bg-slate-50 border border-transparent'}`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold transition-colors ${selectedTeacher === teacher ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-white'}`}>
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                                        </svg>
-                                    </div>
-                                    <div className="flex-1 overflow-hidden">
-                                        <div className={`text-sm font-bold truncate ${selectedTeacher === teacher ? 'text-indigo-600' : 'text-slate-700'}`}>{teacher}</div>
-                                        <div className="flex items-center gap-2 mt-0.5">
-                                            <div className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">Finance Folder</div>
-                                            {data.salaries.some(s => s.teacherName.toLowerCase() === teacher.toLowerCase()) && (
-                                                <span className="w-1 h-1 rounded-full bg-green-500" title="Has Salary Record"></span>
-                                            )}
-                                            {data.fines.some(f => f.teacherName.toLowerCase() === teacher.toLowerCase()) && (
-                                                <span className="w-1 h-1 rounded-full bg-red-400" title="Has Fine Record"></span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </button>
-                        ))
-                    )}
+    if (loading) {
+        return (
+            <div className="h-full w-full flex items-center justify-center bg-slate-50">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Finance Data...</div>
                 </div>
             </div>
+        );
+    }
 
-            {/* Right Content - Details */}
+    return (
+        <div className="flex h-full bg-slate-50 overflow-hidden">
+            {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-w-0">
-                {/* Header Banner */}
-                <div className="bg-red-600 text-white px-6 py-2 text-[10px] font-bold flex justify-between items-center shrink-0">
-                    <span>FINANCE SYSTEM v4.0 - {selectedTeacher || 'Master Overview'}</span>
-                    <div className="flex gap-4">
-                        <span>Salaries: {data.salaries.length}</span>
-                        <span>Fines: {data.fines.length}</span>
-                        <button onClick={() => window.location.reload()} className="underline hover:no-underline">Force Refresh</button>
+                {/* Header Banner - Navigation Integrated */}
+                <div className="bg-red-600 text-white px-6 py-3 text-[10px] font-bold flex justify-between items-center shrink-0 shadow-lg relative z-50">
+                    <div className="flex items-center gap-6">
+                        <span className="opacity-80">FINANCE SYSTEM v4.0</span>
+
+                        {/* Custom Dropdown Selector */}
+                        <div className="relative group">
+                            <button className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all border border-white/20">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                                </svg>
+                                <span className="text-sm uppercase tracking-wider">{selectedTeacher || 'Select Staff Folder'}</span>
+                                <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 hidden group-hover:block overflow-hidden transition-all duration-200">
+                                <div className="p-2 border-b border-gray-50">
+                                    <input
+                                        type="text"
+                                        placeholder="Search..."
+                                        className="w-full px-3 py-1.5 bg-slate-50 rounded-lg text-slate-800 text-xs focus:outline-none border border-transparent focus:border-indigo-100"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                </div>
+                                <div className="max-h-80 overflow-y-auto py-1">
+                                    <button
+                                        onClick={() => setSelectedTeacher(null)}
+                                        className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between ${selectedTeacher === null ? 'bg-indigo-50 text-indigo-600 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
+                                    >
+                                        System Root (Overview)
+                                        {selectedTeacher === null && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600"></div>}
+                                    </button>
+                                    <div className="h-px bg-slate-50 my-1 mx-2"></div>
+                                    {filteredTeachers.map(teacher => (
+                                        <button
+                                            key={teacher}
+                                            onClick={() => setSelectedTeacher(teacher)}
+                                            className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between ${selectedTeacher === teacher ? 'bg-indigo-50 text-indigo-600 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}
+                                        >
+                                            {teacher}
+                                            {selectedTeacher === teacher && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600"></div>}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-6 items-center">
+                        <div className="flex gap-4 opacity-70">
+                            <span>S: {data.salaries.length}</span>
+                            <span>F: {data.fines.length}</span>
+                        </div>
+                        <button onClick={() => window.location.reload()} className="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition-all border border-white/20" title="Refresh Data">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-8 lg:p-12">
-                    <div className="max-w-5xl mx-auto space-y-10">
+                <div className="flex-1 overflow-y-auto p-4 lg:p-12">
+                    <div className="max-w-6xl mx-auto space-y-10">
                         {selectedTeacher === null ? (
                             /* OVERVIEW VIEW */
                             <div className="space-y-10">
-                                <div>
+                                <div className="text-center py-6">
                                     <h1 className="text-4xl font-light text-slate-900">Financial Overview</h1>
                                     <p className="text-slate-500 mt-2">Comprehensive system aggregation across all spreadsheet data</p>
                                 </div>
