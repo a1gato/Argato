@@ -45,6 +45,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
                     spreadsheetId: currentSheetId,
                 });
 
+                const spreadsheetTitle = metadataResponse.data.properties?.title || 'Unknown Spreadsheet';
                 const sheetTitles = (metadataResponse.data.sheets || [])
                     .map(s => s.properties?.title || '')
                     .filter(title => title && !title.startsWith('Pivot Table'));
@@ -70,13 +71,25 @@ export default async function handler(request: VercelRequest, response: VercelRe
                 if (hasFinesSheet) {
                     const finesData = valueRanges[0]?.values;
                     if (finesData) {
-                        const spreadsheetFines = finesData.map(row => ({
-                            teacherName: (row[0] || '').trim(),
-                            reason: row[1] || '',
-                            month: row[2] || '',
-                            date: row[3] || '',
-                            amount: row[4] || '0',
-                        }));
+                        const spreadsheetFines = finesData.map(row => {
+                            let tName = (row[0] || '').trim();
+
+                            // Fallback for Fines as well
+                            const genericSheetWords = ['salary', 'finance', 'os it', 'track', 'copy of'];
+                            const titleIsGeneric = genericSheetWords.some(w => spreadsheetTitle.toLowerCase().includes(w));
+
+                            if ((!tName || tName.toLowerCase() === 'fio' || tName.toLowerCase() === 'teacher') && !titleIsGeneric) {
+                                tName = spreadsheetTitle;
+                            }
+
+                            return {
+                                teacherName: tName,
+                                reason: row[1] || '',
+                                month: row[2] || '',
+                                date: row[3] || '',
+                                amount: row[4] || '0',
+                            };
+                        });
                         allFines = allFines.concat(spreadsheetFines);
                     }
                     rangeOffset = 1;
@@ -112,6 +125,15 @@ export default async function handler(request: VercelRequest, response: VercelRe
                                 if (invalidLabels.includes(colA.toLowerCase()) && !monthNames.includes(colA.toLowerCase())) {
                                     return null;
                                 }
+                            }
+
+                            // Smart Fallback: If it's still unassigned, and the spreadsheet title doesn't look generic,
+                            // use the Spreadsheet Title as the teacher name.
+                            const genericSheetWords = ['salary', 'finance', 'os it', 'track', 'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december', 'copy of'];
+                            const titleIsGeneric = genericSheetWords.some(w => spreadsheetTitle.toLowerCase().includes(w));
+
+                            if (teacherName.startsWith('Unassigned') && !titleIsGeneric) {
+                                teacherName = spreadsheetTitle;
                             }
 
                             return {
