@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // Deployment trigger v1.1.3
+import React, { useState } from 'react';
 import { useCohorts, type Cohort, type ScheduleType } from '../context/CohortContext';
 import { useUsers } from '../context/UsersContext';
 import { useGroups } from '../context/GroupsContext';
@@ -63,7 +63,7 @@ export const GroupsApp: React.FC = () => {
             <div className="max-w-7xl mx-auto">
                 <div className="flex items-center justify-between mb-10">
                     <div>
-                        <h1 className="text-4xl font-bold text-blue-600 tracking-tight underline">Academic Groups (v1.1.3)</h1>
+                        <h1 className="text-4xl font-light text-slate-900 tracking-tight">Academic Groups</h1>
                         <p className="text-slate-500 mt-1 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
                             {cohorts.length} Active cohorts in rotation
@@ -191,7 +191,7 @@ export const GroupsApp: React.FC = () => {
                                         type="text"
                                         required
                                         className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-[20px] outline-none focus:ring-4 focus:ring-blue-600/5 focus:bg-white focus:border-blue-500 transition-all text-lg font-medium text-slate-900"
-                                        placeholder="ENTER GROUP NAME..."
+                                        placeholder="e.g. Advanced Mathematics"
                                         value={formData.name}
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                                     />
@@ -223,8 +223,8 @@ export const GroupsApp: React.FC = () => {
                                         label="Strategic Time Slot"
                                         value={formData.timeSlotId}
                                         onChange={value => setFormData({ ...formData, timeSlotId: value })}
-                                        onCreate={(name) => {
-                                            const newId = addGroup(name, null);
+                                        onCreate={async (name) => {
+                                            const newId = await addGroup(name, null);
                                             setFormData({ ...formData, timeSlotId: newId });
                                         }}
                                         options={[

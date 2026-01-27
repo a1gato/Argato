@@ -76,10 +76,10 @@ export const UsersApp: React.FC = () => {
         return isValid;
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (validateForm()) {
-            addUser({
+            await addUser({
                 firstName: formData.firstName,
                 lastName: formData.lastName,
                 employeeId: formData.employeeId,

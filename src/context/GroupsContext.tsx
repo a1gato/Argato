@@ -8,52 +8,63 @@ export interface Group {
 
 interface GroupsContextType {
     groups: Group[];
-    addGroup: (name: string, parentId?: string | null) => string;
-    removeGroup: (id: string) => void;
+    addGroup: (name: string, parentId?: string | null) => Promise<string>;
+    removeGroup: (id: string) => Promise<void>;
     moveGroup: (groupId: string, newParentId: string | null) => void;
 }
 
 const GroupsContext = createContext<GroupsContextType | undefined>(undefined);
 
 export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    // Initial dummy data
-    // Initial dummy data or load from localStorage
-    const [groups, setGroups] = useState<Group[]>(() => {
-        const saved = localStorage.getItem('groups');
+    const [groups, setGroups] = useState<Group[]>([]);
+
+    const loadGroups = async () => {
         try {
-            const parsed = saved ? JSON.parse(saved) : [];
-            return Array.isArray(parsed) ? parsed.filter((g: any) => g && typeof g.name === 'string') : [];
-        } catch (e) {
-            console.error("Groups parse error", e);
-            return [];
+            const res = await fetch('/api/timeslots');
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setGroups(data);
+            }
+        } catch (err) {
+            console.error('Error loading time slots:', err);
         }
-    });
-
-    // Save to localStorage whenever groups change
-    React.useEffect(() => {
-        localStorage.setItem('groups', JSON.stringify(groups));
-    }, [groups]);
-
-    const addGroup = (name: string, parentId: string | null = null) => {
-        // Prevent duplicate names WITHIN the same parent scope (optional strictness)
-        // For now, simple check global name uniqueness to avoid confusion or allow same name in diff slots?
-        // Let's allow same name if diff parent, but strictly unique might be safer for search. 
-        // User asked for "14:00" etc.
-        const id = crypto.randomUUID();
-        const newGroup: Group = {
-            id,
-            name: name,
-            parentId: parentId
-        };
-        setGroups(prev => [...prev, newGroup]);
-        return id;
     };
 
-    const removeGroup = (id: string) => {
-        setGroups(prev => prev.filter(g => g.id !== id && g.parentId !== id));
+    React.useEffect(() => {
+        loadGroups();
+    }, []);
+
+    const addGroup = async (name: string, parentId: string | null = null) => {
+        try {
+            const res = await fetch('/api/timeslots', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, parentId })
+            });
+            const newGroup = await res.json();
+            setGroups(prev => [...prev, newGroup]);
+            return newGroup.id;
+        } catch (err) {
+            console.error('Error adding time slot:', err);
+            return '';
+        }
+    };
+
+    const removeGroup = async (id: string) => {
+        try {
+            await fetch('/api/timeslots', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            setGroups(prev => prev.filter(g => g.id !== id && g.parentId !== id));
+        } catch (err) {
+            console.error('Error removing time slot:', err);
+        }
     };
 
     const moveGroup = (groupId: string, newParentId: string | null) => {
+        // Local only for now, can be expanded to API if needed
         setGroups(prev => prev.map(g =>
             g.id === groupId ? { ...g, parentId: newParentId } : g
         ));

@@ -140,10 +140,10 @@ export const TimeTableApp: React.FC = () => {
         return false;
     };
 
-    const handleAddSlot = (e: React.FormEvent) => {
+    const handleAddSlot = async (e: React.FormEvent) => {
         e.preventDefault();
         if (newSlotName.trim()) {
-            addGroup(newSlotName.trim(), null);
+            await addGroup(newSlotName.trim(), null);
             setNewSlotName('');
             setIsSlotModalOpen(false);
         }

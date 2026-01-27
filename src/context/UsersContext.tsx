@@ -14,15 +14,13 @@ export interface User {
 
 interface UsersContextType {
     users: User[];
-    addUser: (user: Omit<User, 'id'>) => void;
+    addUser: (user: Omit<User, 'id'>) => Promise<void>;
     updateUser: (id: string, updates: Partial<User>) => void;
-    deleteUser: (id: string) => void;
+    deleteUser: (id: string) => Promise<void>;
     getUserByEmployeeId: (employeeId: string) => User | undefined;
 }
 
 const UsersContext = createContext<UsersContextType | undefined>(undefined);
-
-const USERS_STORAGE_KEY = 'os_users';
 
 const DEFAULT_ADMIN: User = {
     id: 'admin-001',
@@ -36,77 +34,69 @@ const DEFAULT_ADMIN: User = {
 };
 
 export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [users, setUsers] = useState<User[]>(() => {
-        const stored = localStorage.getItem(USERS_STORAGE_KEY);
-        if (stored) {
-            try {
-                const parsedUsers = JSON.parse(stored);
-                if (!Array.isArray(parsedUsers)) return [DEFAULT_ADMIN];
-
-                // Migration for old users
-                return parsedUsers.map((u: any) => {
-                    if (!u) return null;
-                    // Migrate 'name' -> 'firstName'
-                    if (u.name && !u.firstName) {
-                        return {
-                            ...u,
-                            firstName: u.name,
-                            lastName: '',
-                            name: undefined
-                        };
-                    }
-                    // Force update admin email
-                    if (u.employeeId === 'admin') {
-                        return {
-                            ...u,
-                            email: 'admin@fastit.com'
-                        };
-                    }
-                    return u;
-                }).filter(Boolean);
-            } catch (e) {
-                console.error("Failed to parse users", e);
-                return [DEFAULT_ADMIN];
-            }
-        }
-        return [DEFAULT_ADMIN];
-    });
-
+    const [users, setUsers] = useState<User[]>([DEFAULT_ADMIN]);
     const { addLog } = useLogs();
 
-    // Persist changes
-    useEffect(() => {
-        if (users.length > 0) {
-            localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+    const loadUsers = async () => {
+        try {
+            const res = await fetch('/api/users');
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                // Ensure admin is always present
+                const hasAdmin = data.some(u => u.employeeId === 'admin');
+                setUsers(hasAdmin ? data : [DEFAULT_ADMIN, ...data]);
+            }
+        } catch (err) {
+            console.error('Failed to load users:', err);
         }
-    }, [users]);
+    };
 
-    const addUser = (userData: Omit<User, 'id'>) => {
-        const newUser: User = {
-            ...userData,
-            id: crypto.randomUUID()
-        };
-        setUsers(prev => [...prev, newUser]);
-        addLog({
-            type: 'user',
-            action: 'User Created',
-            description: `New user ${newUser.firstName} ${newUser.lastName} (${newUser.role}) was added.`
-        });
+    useEffect(() => {
+        loadUsers();
+    }, []);
+
+    const addUser = async (userData: Omit<User, 'id'>) => {
+        try {
+            const res = await fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            });
+            const newUser = await res.json();
+            setUsers(prev => [...prev, newUser]);
+            addLog({
+                type: 'user',
+                action: 'User Created',
+                description: `New user ${newUser.firstName} ${newUser.lastName} (${newUser.role}) was added.`
+            });
+        } catch (err) {
+            console.error('Error adding user:', err);
+        }
     };
 
     const updateUser = (id: string, updates: Partial<User>) => {
+        // Simple local update for now, could be expanded to API if needed
         setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
     };
 
-    const deleteUser = (id: string) => {
-        const userToDelete = users.find(u => u.id === id);
-        if (userToDelete) {
-            setUsers(prev => prev.filter(u => u.id !== id));
-            addLog({
-                type: 'user',
-                action: 'User Deleted',
-                description: `User ${userToDelete.firstName} ${userToDelete.lastName} was removed.`
-            });
+    const deleteUser = async (id: string) => {
+        try {
+            const userToDelete = users.find(u => u.id === id);
+            if (userToDelete) {
+                await fetch('/api/users', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                setUsers(prev => prev.filter(u => u.id !== id));
+                addLog({
+                    type: 'user',
+                    action: 'User Deleted',
+                    description: `User ${userToDelete.firstName} ${userToDelete.lastName} was removed.`
+                });
+            }
+        } catch (err) {
+            console.error('Error deleting user:', err);
         }
     };
 

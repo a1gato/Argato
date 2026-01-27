@@ -55,7 +55,13 @@ export const CohortProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             const res = await fetch('/api/groups', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, description, teacherId, scheduleType, timeSlotId })
+                body: JSON.stringify({
+                    name,
+                    description: description || '',
+                    teacherId: teacherId || '',
+                    scheduleType: scheduleType || 'MWF',
+                    timeSlotId: timeSlotId || ''
+                })
             });
             const newCohort = await res.json();
             setCohorts(prev => [...prev, newCohort]);
@@ -99,7 +105,14 @@ export const CohortProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             const res = await fetch('/api/groups', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, name, description, teacherId, scheduleType, timeSlotId })
+                body: JSON.stringify({
+                    id,
+                    name,
+                    description: description || '',
+                    teacherId: teacherId || '',
+                    scheduleType: scheduleType || 'MWF',
+                    timeSlotId: timeSlotId || ''
+                })
             });
             const updated = await res.json();
             setCohorts(prev => prev.map(c => c.id === id ? updated : c));
