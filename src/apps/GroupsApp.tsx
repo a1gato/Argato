@@ -155,7 +155,7 @@ export const GroupsApp: React.FC = () => {
                                         </div>
                                         <div>
                                             <div className="text-[13px] font-bold text-slate-800 leading-none">
-                                                {teacher ? `${teacher.firstName} ${teacher.lastName}` : 'TBA'}
+                                                {cohort.teacherId ? (teacher ? `${teacher.firstName} ${teacher.lastName}` : 'ID Mismatch') : 'TBA'}
                                             </div>
                                             <div className="text-[11px] text-slate-400 mt-1 uppercase tracking-tighter">Academic Lead</div>
                                         </div>
