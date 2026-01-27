@@ -20,8 +20,29 @@ export default async function handler(request: VercelRequest, response: VercelRe
         const auth = new google.auth.JWT({ email, key: privateKey, scopes: SCOPES });
         const sheets = google.sheets({ version: 'v4', auth });
 
-        // Get the first ID from environment variable or fallback to known ID
-        const spreadsheetId = (process.env.GOOGLE_SHEET_ID || '').split(',')[0]?.trim() || "1ozJmAzAVf-ISwa6pvtSrwQSkkKpxE5sUpJVTKH_Xw-k";
+        const envIds = (process.env.GOOGLE_SHEET_ID || '').split(',').map(id => id.trim()).filter(Boolean);
+        const configIds = [
+            "1ozJmAzAVf-ISwa6pvtSrwQSkkKpxE5sUpJVTKH_Xw-k",
+            "1_GwFosb5GihN6DFNLQtY2P9vNiBruRm7LO85_WQ-Y8k"
+        ];
+        const allSheetIds = Array.from(new Set([...envIds, ...configIds]));
+
+        async function getSpreadsheetId() {
+            // First look for any sheet with "REG" in its title
+            for (const id of allSheetIds) {
+                try {
+                    const meta = await sheets.spreadsheets.get({ spreadsheetId: id });
+                    const title = meta.data.properties?.title || '';
+                    const hasDataTabs = meta.data.sheets?.some(s => ['Users', 'Students', 'Groups', 'TimeSlots'].includes(s.properties?.title || ''));
+                    if (title.toUpperCase().includes('REG') || hasDataTabs) {
+                        return id;
+                    }
+                } catch (e) { continue; }
+            }
+            return allSheetIds[0];
+        }
+
+        const spreadsheetId = await getSpreadsheetId();
 
         switch (method) {
             case 'GET': {
@@ -33,14 +54,14 @@ export default async function handler(request: VercelRequest, response: VercelRe
                 const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: "'Users'!A2:H" });
                 const rows = res.data.values || [];
                 const users = rows.map(row => ({
-                    id: row[0],
-                    employeeId: row[1] || '',
-                    firstName: row[2] || '',
-                    lastName: row[3] || '',
-                    password: row[4] || '',
-                    role: row[5] || 'employee',
-                    telephone: row[6] || '',
-                    email: row[7] || ''
+                    id: String(row[0] || ''),
+                    employeeId: String(row[1] || ''),
+                    firstName: String(row[2] || ''),
+                    lastName: String(row[3] || ''),
+                    password: String(row[4] || ''),
+                    role: String(row[5] || 'employee'),
+                    telephone: String(row[6] || ''),
+                    email: String(row[7] || '')
                 })).filter(u => u.id);
                 return response.status(200).json(users);
             }
@@ -48,7 +69,16 @@ export default async function handler(request: VercelRequest, response: VercelRe
             case 'POST': {
                 const { employeeId, firstName, lastName, password, role, telephone, email: userEmail } = request.body;
                 const newUserId = crypto.randomUUID();
-                const newUser = [newUserId, employeeId, firstName, lastName, password, role, telephone, userEmail];
+                const newUser = [
+                    String(newUserId),
+                    String(employeeId || ''),
+                    String(firstName || ''),
+                    String(lastName || ''),
+                    String(password || ''),
+                    String(role || 'employee'),
+                    String(telephone || ''),
+                    String(userEmail || '')
+                ];
 
                 const metadata = await sheets.spreadsheets.get({ spreadsheetId });
                 const hasUsersSheet = metadata.data.sheets?.some(s => s.properties?.title === 'Users');
