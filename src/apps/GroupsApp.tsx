@@ -63,7 +63,7 @@ export const GroupsApp: React.FC = () => {
             <div className="max-w-7xl mx-auto">
                 <div className="flex items-center justify-between mb-10">
                     <div>
-                        <h1 className="text-4xl font-light text-slate-900 tracking-tight">Academic Groups</h1>
+                        <h1 className="text-4xl font-light text-slate-900 tracking-tight">Academic Groups (v1.1.2)</h1>
                         <p className="text-slate-500 mt-1 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
                             {cohorts.length} Active cohorts in rotation
