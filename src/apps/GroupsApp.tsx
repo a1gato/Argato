@@ -191,7 +191,7 @@ export const GroupsApp: React.FC = () => {
                                         type="text"
                                         required
                                         className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-[20px] outline-none focus:ring-4 focus:ring-blue-600/5 focus:bg-white focus:border-blue-500 transition-all text-lg font-medium text-slate-900"
-                                        placeholder="e.g. Advanced Mathematics"
+                                        placeholder="ENTER GROUP NAME..."
                                         value={formData.name}
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                                     />
