@@ -150,7 +150,7 @@ export const StudentsApp: React.FC = () => {
         <div className="p-8 w-full h-full overflow-y-auto bg-slate-50/50 relative">
             <div className="max-w-7xl mx-auto mb-4">
                 <div className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-between shadow-lg shadow-blue-600/20">
-                    <span>🚀 Build v1.0.6 - Database Isolated</span>
+                    <span>🚀 Build v1.1.2 - DEPLOYED</span>
                     <span className="opacity-70">Live Sync Enabled</span>
                 </div>
             </div>
@@ -351,7 +351,7 @@ export const StudentsApp: React.FC = () => {
                     {connStatus === 'Offline' && (
                         <span className="text-rose-500 font-bold border-r border-slate-200 pr-3 mr-3">Backend Server Missing</span>
                     )}
-                    <span>Build v1.0.6 • Educational Isolation</span>
+                    <span>Build v1.1.2 • DEPLOYED</span>
                 </div>
             </div>
 
