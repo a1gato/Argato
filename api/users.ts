@@ -105,6 +105,27 @@ export default async function handler(request: VercelRequest, response: VercelRe
                 return response.status(200).json({ success: true });
             }
 
+            case 'PUT': {
+                const { id, employeeId, firstName, lastName, password, role, telephone, email: userEmail } = request.body;
+                const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: "'Users'!A:A" });
+                const rows = res.data.values || [];
+                const rowIndex = rows.findIndex(row => row[0] === id);
+
+                if (rowIndex === -1) return response.status(404).json({ error: 'User not found' });
+
+                const updateRange = `'Users'!A${rowIndex + 1}:H${rowIndex + 1}`;
+                await sheets.spreadsheets.values.update({
+                    spreadsheetId,
+                    range: updateRange,
+                    valueInputOption: 'RAW',
+                    requestBody: {
+                        values: [[id, employeeId, firstName, lastName, password, role, telephone, userEmail]]
+                    }
+                });
+
+                return response.status(200).json({ id, employeeId, firstName, lastName, password, role, telephone, email: userEmail });
+            }
+
             default:
                 return response.status(405).json({ error: 'Method not allowed' });
         }

@@ -15,7 +15,7 @@ export interface User {
 interface UsersContextType {
     users: User[];
     addUser: (user: Omit<User, 'id'>) => Promise<void>;
-    updateUser: (id: string, updates: Partial<User>) => void;
+    updateUser: (id: string, updates: Partial<User>) => Promise<void>;
     deleteUser: (id: string) => Promise<void>;
     getUserByEmployeeId: (employeeId: string) => User | undefined;
 }
@@ -62,6 +62,7 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData)
             });
+            if (!res.ok) throw new Error('Failed to create user');
             const newUser = await res.json();
             setUsers(prev => [...prev, newUser]);
             addLog({
@@ -71,23 +72,41 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             });
         } catch (err) {
             console.error('Error adding user:', err);
+            alert('Failed to add user. Check console for details.');
         }
     };
 
-    const updateUser = (id: string, updates: Partial<User>) => {
-        // Simple local update for now, could be expanded to API if needed
-        setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+    const updateUser = async (id: string, updates: Partial<User>) => {
+        try {
+            const user = users.find(u => u.id === id);
+            if (!user) return;
+
+            const updatedUser = { ...user, ...updates };
+            const res = await fetch('/api/users', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedUser)
+            });
+            if (!res.ok) throw new Error('Failed to update user');
+
+            setUsers(prev => prev.map(u => u.id === id ? updatedUser : u));
+        } catch (err) {
+            console.error('Error updating user:', err);
+            alert('Failed to update user.');
+        }
     };
 
     const deleteUser = async (id: string) => {
         try {
             const userToDelete = users.find(u => u.id === id);
             if (userToDelete) {
-                await fetch('/api/users', {
+                const res = await fetch('/api/users', {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id })
                 });
+                if (!res.ok) throw new Error('Failed to delete user');
+
                 setUsers(prev => prev.filter(u => u.id !== id));
                 addLog({
                     type: 'user',
@@ -97,6 +116,7 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             }
         } catch (err) {
             console.error('Error deleting user:', err);
+            alert('Failed to delete user.');
         }
     };
 

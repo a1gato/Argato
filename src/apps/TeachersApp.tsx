@@ -98,7 +98,7 @@ export const TeachersApp: React.FC = () => {
         setIsModalOpen(true);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (validateForm()) {
             if (editingTeacher) {
@@ -112,9 +112,9 @@ export const TeachersApp: React.FC = () => {
                 if (formData.password.trim()) {
                     updates.password = formData.password;
                 }
-                updateUser(editingTeacher.id, updates);
+                await updateUser(editingTeacher.id, updates);
             } else {
-                addUser({
+                await addUser({
                     firstName: formData.firstName,
                     lastName: formData.lastName,
                     employeeId: formData.employeeId,
@@ -227,7 +227,11 @@ export const TeachersApp: React.FC = () => {
                                             </svg>
                                         </button>
                                         <button
-                                            onClick={() => deleteUser(teacher.id)}
+                                            onClick={async () => {
+                                                if (window.confirm('Are you sure you want to remove this teacher?')) {
+                                                    await deleteUser(teacher.id);
+                                                }
+                                            }}
                                             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                         >
                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
