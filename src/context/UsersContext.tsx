@@ -15,7 +15,7 @@ export interface User {
 interface UsersContextType {
     users: User[];
     addUser: (user: Omit<User, 'id'>) => Promise<void>;
-    updateUser: (id: string, updates: Partial<User>) => Promise<void>;
+    updateUser: (id: string, updates: Partial<User>) => void;
     deleteUser: (id: string) => Promise<void>;
     getUserByEmployeeId: (employeeId: string) => User | undefined;
 }
@@ -62,7 +62,10 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData)
             });
-            if (!res.ok) throw new Error('Failed to create user');
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to create user');
+            }
             const newUser = await res.json();
             setUsers(prev => [...prev, newUser]);
             addLog({
@@ -70,9 +73,11 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 action: 'User Created',
                 description: `New user ${newUser.firstName} ${newUser.lastName} (${newUser.role}) was added.`
             });
-        } catch (err) {
+            return newUser;
+        } catch (err: any) {
             console.error('Error adding user:', err);
-            alert('Failed to add user. Check console for details.');
+            alert(`Error: ${err.message}`);
+            throw err;
         }
     };
 
@@ -87,12 +92,17 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedUser)
             });
-            if (!res.ok) throw new Error('Failed to update user');
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to update user');
+            }
 
             setUsers(prev => prev.map(u => u.id === id ? updatedUser : u));
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error updating user:', err);
-            alert('Failed to update user.');
+            alert(`Error updating: ${err.message}`);
+            throw err;
         }
     };
 
@@ -105,7 +115,11 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id })
                 });
-                if (!res.ok) throw new Error('Failed to delete user');
+
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || 'Failed to delete user');
+                }
 
                 setUsers(prev => prev.filter(u => u.id !== id));
                 addLog({
@@ -114,9 +128,10 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     description: `User ${userToDelete.firstName} ${userToDelete.lastName} was removed.`
                 });
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error deleting user:', err);
-            alert('Failed to delete user.');
+            alert(`Error deleting: ${err.message}`);
+            throw err;
         }
     };
 
