@@ -55,7 +55,7 @@ export const StudentsApp: React.FC = () => {
             });
         } else {
             setEditingStudent(null);
-            const initialGroup = studentSettings.defaultGroup !== 'None' ? studentSettings.defaultGroup : (cohorts.length > 0 ? cohorts[0].name : '');
+            const initialGroup = studentSettings.defaultGroup !== 'None' ? studentSettings.defaultGroup : (cohorts.length > 0 ? (cohorts[0]?.name || '') : '');
             setFormData({ name: '', surname: '', phone: '', parentPhone: '', group: initialGroup });
         }
         setErrors({ name: '', surname: '', phone: '', parentPhone: '', group: '' });
@@ -266,7 +266,7 @@ export const StudentsApp: React.FC = () => {
                                         <td className="px-6 py-5">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center text-blue-600 font-bold text-sm border border-blue-100/50">
-                                                    {student.name[0]}{student.surname[0]}
+                                                    {student?.name?.[0] || ''}{student?.surname?.[0] || '' || '?'}
                                                 </div>
                                                 <div>
                                                     <div className="text-[15px] font-semibold text-slate-900 leading-tight">
@@ -377,7 +377,7 @@ export const StudentsApp: React.FC = () => {
                                     <label className="block text-[13px] font-bold text-slate-700 mb-2 uppercase tracking-tight">First Name</label>
                                     <input
                                         type="text"
-                                        className={`w-full px-4 py-3 bg-slate-50 border rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:bg-white outline-none transition-all ${errors.name ? 'border-rose-500' : 'border-slate-100 focus:border-blue-500'} `}
+                                        className={`w-full px-4 py-3 bg-slate-50 border rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:bg-white outline-none transition-all text-slate-900 ${errors.name ? 'border-rose-500' : 'border-slate-100 focus:border-blue-500'} `}
                                         placeholder="Enter first name"
                                         value={formData.name}
                                         onChange={e => {
@@ -392,7 +392,7 @@ export const StudentsApp: React.FC = () => {
                                     <label className="block text-[13px] font-bold text-slate-700 mb-2 uppercase tracking-tight">Last Name</label>
                                     <input
                                         type="text"
-                                        className={`w-full px-4 py-3 bg-slate-50 border rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:bg-white outline-none transition-all ${errors.surname ? 'border-rose-500' : 'border-slate-100 focus:border-blue-500'} `}
+                                        className={`w-full px-4 py-3 bg-slate-50 border rounded-2xl focus:ring-4 focus:ring-blue-600/5 focus:bg-white outline-none transition-all text-slate-900 ${errors.surname ? 'border-rose-500' : 'border-slate-100 focus:border-blue-500'} `}
                                         placeholder="Enter last name"
                                         value={formData.surname}
                                         onChange={e => {

@@ -71,7 +71,7 @@ const GridCell = ({ cohorts, users, studentCountMap, isActiveTime }: {
                                 <div className="flex justify-between items-start mb-1.5 relative z-10">
                                     <h4 className="font-bold text-slate-800 text-[11px] leading-tight">{cohort.name}</h4>
                                     <div className={`px-1.5 py-0.5 rounded-[4px] text-[7px] font-black uppercase tracking-wider ${cohort.scheduleType === 'MWF' ? 'bg-emerald-100 text-emerald-700' :
-                                            cohort.scheduleType === 'TTS' ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700'
+                                        cohort.scheduleType === 'TTS' ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700'
                                         }`}>
                                         {cohort.scheduleType || 'MWF'}
                                     </div>
@@ -88,7 +88,7 @@ const GridCell = ({ cohorts, users, studentCountMap, isActiveTime }: {
                                     {teacher && (
                                         <div className="flex items-center gap-1.5 text-[9px] text-slate-700 font-medium pt-1 border-t border-slate-50">
                                             <div className="w-4 h-4 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-[8px] font-bold">
-                                                {teacher.firstName[0]}
+                                                {teacher?.firstName?.[0] || '?'}
                                             </div>
                                             <span className="truncate">{teacher.firstName}</span>
                                         </div>
@@ -122,7 +122,7 @@ export const TimeTableApp: React.FC = () => {
 
     // Get sorted time slots
     const timeSlots = groups
-        .filter(g => !g.parentId)
+        .filter(g => g && !g.parentId)
         .sort((a, b) => parseTime(a.name) - parseTime(b.name));
 
     // Map student counts

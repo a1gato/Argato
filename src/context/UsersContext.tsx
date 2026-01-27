@@ -45,6 +45,7 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
                 // Migration for old users
                 return parsedUsers.map((u: any) => {
+                    if (!u) return null;
                     // Migrate 'name' -> 'firstName'
                     if (u.name && !u.firstName) {
                         return {
@@ -62,7 +63,7 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                         };
                     }
                     return u;
-                });
+                }).filter(Boolean);
             } catch (e) {
                 console.error("Failed to parse users", e);
                 return [DEFAULT_ADMIN];

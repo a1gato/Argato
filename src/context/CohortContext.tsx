@@ -36,7 +36,7 @@ export const CohortProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             const res = await fetch('/api/groups');
             const data = await res.json();
             if (Array.isArray(data)) {
-                setCohorts(data);
+                setCohorts(data.filter((c: any) => c && typeof c.name === 'string'));
             }
         } catch (err) {
             console.error('Error loading groups:', err);

@@ -20,7 +20,13 @@ export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     // Initial dummy data or load from localStorage
     const [groups, setGroups] = useState<Group[]>(() => {
         const saved = localStorage.getItem('groups');
-        return saved ? JSON.parse(saved) : [];
+        try {
+            const parsed = saved ? JSON.parse(saved) : [];
+            return Array.isArray(parsed) ? parsed.filter((g: any) => g && typeof g.name === 'string') : [];
+        } catch (e) {
+            console.error("Groups parse error", e);
+            return [];
+        }
     });
 
     // Save to localStorage whenever groups change

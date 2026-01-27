@@ -40,8 +40,9 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     }, []);
 
     const filteredOptions = useMemo(() => {
-        if (!searchTerm) return options;
-        return options.filter(opt =>
+        const safeOptions = (options || []).filter(opt => opt && typeof opt.label === 'string');
+        if (!searchTerm) return safeOptions;
+        return safeOptions.filter(opt =>
             opt.label.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [options, searchTerm]);

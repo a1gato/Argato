@@ -202,7 +202,7 @@ export const TeachersApp: React.FC = () => {
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-medium">
-                                                {teacher.firstName[0]}{teacher.lastName[0]}
+                                                {teacher?.firstName?.[0] || ''}{teacher?.lastName?.[0] || '' || '?'}
                                             </div>
                                             <div>
                                                 <div className="text-sm font-medium text-slate-900">{teacher.firstName} {teacher.lastName}</div>
@@ -281,7 +281,7 @@ export const TeachersApp: React.FC = () => {
                                                 type="text"
                                                 value={formData.firstName}
                                                 onChange={e => setFormData({ ...formData, firstName: e.target.value })}
-                                                className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.firstName ? 'border-red-500' : 'border-gray-200'}`}
+                                                className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none text-slate-900 ${errors.firstName ? 'border-red-500' : 'border-gray-200'}`}
                                                 placeholder="Jane"
                                             />
                                         </div>
@@ -291,7 +291,7 @@ export const TeachersApp: React.FC = () => {
                                                 type="text"
                                                 value={formData.lastName}
                                                 onChange={e => setFormData({ ...formData, lastName: e.target.value })}
-                                                className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.lastName ? 'border-red-500' : 'border-gray-200'}`}
+                                                className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none text-slate-900 ${errors.lastName ? 'border-red-500' : 'border-gray-200'}`}
                                                 placeholder="Smith"
                                             />
                                         </div>

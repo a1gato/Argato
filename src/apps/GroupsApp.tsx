@@ -9,24 +9,23 @@ export const GroupsApp: React.FC = () => {
     const { users } = useUsers();
     const { groups, addGroup } = useGroups();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formData, setFormData] = useState({ name: '', description: '', teacherId: '', scheduleType: 'MWF' as ScheduleType, timeSlotId: '' });
+    const [formData, setFormData] = useState({ name: '', teacherId: '', scheduleType: 'MWF' as ScheduleType, timeSlotId: '' });
     const [editingId, setEditingId] = useState<string | null>(null);
 
-    const teachers = users.filter(u => u.role === 'teacher');
-    const timeSlots = groups.filter(g => !g.parentId);
+    const teachers = (users || []).filter(u => u && u.role === 'teacher');
+    const timeSlots = (groups || []).filter(g => g && !g.parentId);
 
     const handleOpenModal = (cohort?: Cohort) => {
         if (cohort) {
             setFormData({
                 name: cohort.name,
-                description: cohort.description || '',
                 teacherId: cohort.teacherId || '',
                 scheduleType: cohort.scheduleType || 'MWF',
                 timeSlotId: cohort.timeSlotId || ''
             });
             setEditingId(cohort.id);
         } else {
-            setFormData({ name: '', description: '', teacherId: '', scheduleType: 'MWF', timeSlotId: '' });
+            setFormData({ name: '', teacherId: '', scheduleType: 'MWF', timeSlotId: '' });
             setEditingId(null);
         }
         setIsModalOpen(true);
@@ -37,9 +36,9 @@ export const GroupsApp: React.FC = () => {
         if (formData.name.trim()) {
             try {
                 if (editingId) {
-                    await updateCohort(editingId, formData.name, formData.description, formData.teacherId || undefined, formData.scheduleType, formData.timeSlotId || undefined);
+                    await updateCohort(editingId, formData.name, '', formData.teacherId || undefined, formData.scheduleType, formData.timeSlotId || undefined);
                 } else {
-                    await addCohort(formData.name, formData.description, formData.teacherId || undefined, formData.scheduleType, formData.timeSlotId || undefined);
+                    await addCohort(formData.name, '', formData.teacherId || undefined, formData.scheduleType, formData.timeSlotId || undefined);
                 }
                 setIsModalOpen(false);
             } catch (err) {
@@ -105,7 +104,7 @@ export const GroupsApp: React.FC = () => {
                                         ${cohort.scheduleType === 'MWF' ? 'bg-indigo-50 text-indigo-600' :
                                             cohort.scheduleType === 'TTS' ? 'bg-amber-50 text-amber-600' :
                                                 'bg-rose-50 text-rose-600'}`}>
-                                        {cohort.name[0]}
+                                        {cohort.name?.[0] || '?'}
                                     </div>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                                         <button
@@ -132,14 +131,14 @@ export const GroupsApp: React.FC = () => {
                                 </div>
 
                                 <h3 className="text-[22px] font-bold text-slate-900 leading-tight mb-2">{cohort.name}</h3>
-                                <p className="text-[15px] text-slate-500 leading-relaxed mb-6 flex-grow">{cohort.description || 'No detailed description provided for this group.'}</p>
+
 
                                 <div className="space-y-4 pt-6 border-t border-slate-50">
                                     <div className="flex items-center justify-between text-[13px]">
                                         <span className="text-slate-400 font-medium uppercase tracking-wider">Schedule</span>
                                         <span className={`font-bold px-2 py-0.5 rounded-lg border ${cohort.scheduleType === 'MWF' ? 'bg-indigo-50/50 text-indigo-700 border-indigo-100' :
-                                                cohort.scheduleType === 'TTS' ? 'bg-amber-50/50 text-amber-700 border-amber-100' :
-                                                    'bg-rose-50/50 text-rose-700 border-rose-100'
+                                            cohort.scheduleType === 'TTS' ? 'bg-amber-50/50 text-amber-700 border-amber-100' :
+                                                'bg-rose-50/50 text-rose-700 border-rose-100'
                                             }`}>
                                             {cohort.scheduleType === 'DAILY' ? 'Mon - Sat' : cohort.scheduleType}
                                         </span>
@@ -152,7 +151,7 @@ export const GroupsApp: React.FC = () => {
 
                                     <div className="flex items-center gap-3 mt-4">
                                         <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 border-2 border-white shadow-sm ring-1 ring-slate-100">
-                                            {teacher ? teacher.firstName[0] : '?'}
+                                            {teacher?.firstName?.[0] || '?'}
                                         </div>
                                         <div>
                                             <div className="text-[13px] font-bold text-slate-800 leading-none">
@@ -191,27 +190,18 @@ export const GroupsApp: React.FC = () => {
                                     <input
                                         type="text"
                                         required
-                                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-[20px] outline-none focus:ring-4 focus:ring-blue-600/5 focus:bg-white focus:border-blue-500 transition-all text-lg font-medium"
+                                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-[20px] outline-none focus:ring-4 focus:ring-blue-600/5 focus:bg-white focus:border-blue-500 transition-all text-lg font-medium text-slate-900"
                                         placeholder="e.g. Advanced Mathematics"
                                         value={formData.name}
-                                        onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                                        autoFocus
+                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-[13px] font-bold text-slate-400 mb-2 uppercase tracking-widest pl-1">Mission / Description</label>
-                                    <textarea
-                                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-[20px] outline-none focus:ring-4 focus:ring-blue-600/5 focus:bg-white focus:border-blue-500 transition-all min-h-[100px] text-[15px]"
-                                        placeholder="Briefly describe the focus of this group..."
-                                        value={formData.description}
-                                        onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                                    />
-                                </div>
+
                                 <div className="grid grid-cols-2 gap-8">
                                     <CustomSelect
                                         label="Academic Cycle"
                                         value={formData.scheduleType}
-                                        onChange={value => setFormData(prev => ({ ...prev, scheduleType: value as ScheduleType }))}
+                                        onChange={value => setFormData({ ...formData, scheduleType: value as ScheduleType })}
                                         options={[
                                             { label: 'Mon, Wed, Fri', value: 'MWF' },
                                             { label: 'Tue, Thu, Sat', value: 'TTS' },
@@ -221,10 +211,10 @@ export const GroupsApp: React.FC = () => {
                                     <CustomSelect
                                         label="Academic Lead"
                                         value={formData.teacherId}
-                                        onChange={value => setFormData(prev => ({ ...prev, teacherId: value }))}
+                                        onChange={value => setFormData({ ...formData, teacherId: value })}
                                         options={[
                                             { label: 'To Be Assigned', value: '' },
-                                            ...teachers.map(t => ({ label: `${t.firstName} ${t.lastName}`, value: t.id }))
+                                            ...teachers.map(t => ({ label: `${t.firstName || ''} ${t.lastName || ''}`.trim() || 'Unnamed Teacher', value: t.id }))
                                         ]}
                                     />
                                 </div>
@@ -232,14 +222,14 @@ export const GroupsApp: React.FC = () => {
                                     <CustomSelect
                                         label="Strategic Time Slot"
                                         value={formData.timeSlotId}
-                                        onChange={value => setFormData(prev => ({ ...prev, timeSlotId: value }))}
+                                        onChange={value => setFormData({ ...formData, timeSlotId: value })}
                                         onCreate={(name) => {
                                             const newId = addGroup(name, null);
-                                            setFormData(prev => ({ ...prev, timeSlotId: newId }));
+                                            setFormData({ ...formData, timeSlotId: newId });
                                         }}
                                         options={[
                                             { label: 'Select chronos slot...', value: '' },
-                                            ...timeSlots.map(s => ({ label: s.name, value: s.id }))
+                                            ...timeSlots.map(s => ({ label: s.name || 'Unnamed Slot', value: s.id }))
                                         ]}
                                     />
                                 </div>
