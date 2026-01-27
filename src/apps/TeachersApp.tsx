@@ -6,6 +6,7 @@ export const TeachersApp: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTeacher, setEditingTeacher] = useState<User | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [activeTab, setActiveTab] = useState<'details' | 'fines' | 'salary'>('details');
     const [sheetData, setSheetData] = useState<{ fines: import('../services/sheetsService').Fine[], salaries: import('../services/sheetsService').Salary[] }>({ fines: [], salaries: [] });
@@ -98,33 +99,41 @@ export const TeachersApp: React.FC = () => {
         setIsModalOpen(true);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (validateForm()) {
-            if (editingTeacher) {
-                const updates: Partial<User> = {
-                    firstName: formData.firstName,
-                    lastName: formData.lastName,
-                    employeeId: formData.employeeId,
-                    telephone: formData.telephone,
-                    email: formData.email
-                };
-                if (formData.password.trim()) {
-                    updates.password = formData.password;
+            setIsSubmitting(true);
+            try {
+                if (editingTeacher) {
+                    const updates: Partial<User> = {
+                        firstName: formData.firstName,
+                        lastName: formData.lastName,
+                        employeeId: formData.employeeId,
+                        telephone: formData.telephone,
+                        email: formData.email
+                    };
+                    if (formData.password.trim()) {
+                        updates.password = formData.password;
+                    }
+                    await updateUser(editingTeacher.id, updates);
+                } else {
+                    await addUser({
+                        firstName: formData.firstName,
+                        lastName: formData.lastName,
+                        employeeId: formData.employeeId,
+                        password: formData.password,
+                        role: 'teacher',
+                        telephone: formData.telephone,
+                        email: formData.email
+                    });
                 }
-                updateUser(editingTeacher.id, updates);
-            } else {
-                addUser({
-                    firstName: formData.firstName,
-                    lastName: formData.lastName,
-                    employeeId: formData.employeeId,
-                    password: formData.password,
-                    role: 'teacher',
-                    telephone: formData.telephone,
-                    email: formData.email
-                });
+                setIsModalOpen(false);
+            } catch (err: any) {
+                console.error('Submission error:', err);
+                // The alert is already handled in the context, but we keep the modal open
+            } finally {
+                setIsSubmitting(false);
             }
-            setIsModalOpen(false);
         }
     };
 
@@ -280,30 +289,42 @@ export const TeachersApp: React.FC = () => {
                                             <input
                                                 type="text"
                                                 value={formData.firstName}
-                                                onChange={e => setFormData({ ...formData, firstName: e.target.value })}
+                                                onChange={e => {
+                                                    setFormData({ ...formData, firstName: e.target.value });
+                                                    if (errors.firstName) setErrors({ ...errors, firstName: '' });
+                                                }}
                                                 className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none text-slate-900 ${errors.firstName ? 'border-red-500' : 'border-gray-200'}`}
                                                 placeholder="Jane"
                                             />
+                                            {errors.firstName && <p className="text-xs text-red-500 mt-1">{errors.firstName}</p>}
                                         </div>
                                         <div>
                                             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Last Name</label>
                                             <input
                                                 type="text"
                                                 value={formData.lastName}
-                                                onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+                                                onChange={e => {
+                                                    setFormData({ ...formData, lastName: e.target.value });
+                                                    if (errors.lastName) setErrors({ ...errors, lastName: '' });
+                                                }}
                                                 className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none text-slate-900 ${errors.lastName ? 'border-red-500' : 'border-gray-200'}`}
                                                 placeholder="Smith"
                                             />
+                                            {errors.lastName && <p className="text-xs text-red-500 mt-1">{errors.lastName}</p>}
                                         </div>
                                         <div>
                                             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Phone</label>
                                             <input
                                                 type="tel"
                                                 value={formData.telephone}
-                                                onChange={e => setFormData({ ...formData, telephone: e.target.value })}
+                                                onChange={e => {
+                                                    setFormData({ ...formData, telephone: e.target.value });
+                                                    if (errors.telephone) setErrors({ ...errors, telephone: '' });
+                                                }}
                                                 className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.telephone ? 'border-red-500' : 'border-gray-200'}`}
                                                 placeholder="555-0199"
                                             />
+                                            {errors.telephone && <p className="text-xs text-red-500 mt-1">{errors.telephone}</p>}
                                         </div>
                                         <div>
                                             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Email</label>
@@ -320,10 +341,14 @@ export const TeachersApp: React.FC = () => {
                                             <input
                                                 type="text"
                                                 value={formData.employeeId}
-                                                onChange={e => setFormData({ ...formData, employeeId: e.target.value })}
+                                                onChange={e => {
+                                                    setFormData({ ...formData, employeeId: e.target.value });
+                                                    if (errors.employeeId) setErrors({ ...errors, employeeId: '' });
+                                                }}
                                                 className={`w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all outline-none ${errors.employeeId ? 'border-red-500' : 'border-gray-200'}`}
                                                 placeholder="TCH-001"
                                             />
+                                            {errors.employeeId && <p className="text-xs text-red-500 mt-1">{errors.employeeId}</p>}
                                         </div>
                                         <div>
                                             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Password {editingTeacher && <span className="text-gray-400 lowercase font-normal">(leave blank to keep)</span>}</label>
@@ -347,9 +372,10 @@ export const TeachersApp: React.FC = () => {
                                         </button>
                                         <button
                                             type="submit"
-                                            className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 font-medium transition-colors"
+                                            disabled={isSubmitting}
+                                            className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            {editingTeacher ? 'Update Teacher' : 'Create Teacher'}
+                                            {isSubmitting ? 'Processing...' : (editingTeacher ? 'Update Teacher' : 'Create Teacher')}
                                         </button>
                                     </div>
                                 </form>
