@@ -27,110 +27,70 @@ const CohortContext = createContext<CohortContextType | undefined>(undefined);
 
 export const CohortProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { addLog } = useLogs();
-    const [cohorts, setCohorts] = useState<Cohort[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
-
-    const loadCohorts = async () => {
-        try {
-            const res = await fetch('/api/groups');
-            const data = await res.json();
-            if (Array.isArray(data)) {
-                setCohorts(data.filter((c: any) => c && typeof c.name === 'string'));
-            }
-        } catch (err) {
-            console.error('Error loading groups:', err);
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    };
+    const [cohorts, setCohorts] = useState<Cohort[]>(() => {
+        const saved = localStorage.getItem('fastit_cohorts');
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [refreshing] = useState(false);
 
     useEffect(() => {
-        loadCohorts();
-    }, []);
+        localStorage.setItem('fastit_cohorts', JSON.stringify(cohorts));
+    }, [cohorts]);
+
+    const loadCohorts = async () => {
+        // Already loaded from LocalStorage
+    };
 
     const addCohort = async (name: string, description?: string, teacherId?: string, scheduleType: ScheduleType = 'MWF', timeSlotId?: string) => {
-        try {
-            const res = await fetch('/api/groups', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name,
-                    description: description || '',
-                    teacherId: teacherId || '',
-                    scheduleType: scheduleType || 'MWF',
-                    timeSlotId: timeSlotId || ''
-                })
-            });
-            const newCohort = await res.json();
-            setCohorts(prev => [...prev, newCohort]);
+        const newCohort: Cohort = {
+            id: crypto.randomUUID(),
+            name,
+            description: description || '',
+            teacherId: teacherId || '',
+            scheduleType: scheduleType || 'MWF',
+            timeSlotId: timeSlotId || ''
+        };
+        setCohorts(prev => [...prev, newCohort]);
 
-            addLog({
-                type: 'cohort',
-                action: 'Group Created',
-                description: `A new ${scheduleType} group "${name}" was created.`
-            });
-        } catch (err) {
-            console.error('Error adding cohort:', err);
-            throw err;
-        }
+        addLog({
+            type: 'cohort',
+            action: 'Group Created',
+            description: `A new ${scheduleType} group "${name}" was created.`
+        });
     };
 
     const removeCohort = async (id: string) => {
-        try {
-            const cohortToRemove = cohorts.find(c => c.id === id);
-            await fetch('/api/groups', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id })
+        const cohortToRemove = cohorts.find(c => c.id === id);
+        if (cohortToRemove) {
+            setCohorts(prev => prev.filter(c => c.id !== id));
+            addLog({
+                type: 'cohort',
+                action: 'Group Deleted',
+                description: `Group "${cohortToRemove.name}" was removed.`
             });
-
-            if (cohortToRemove) {
-                setCohorts(prev => prev.filter(c => c.id !== id));
-                addLog({
-                    type: 'cohort',
-                    action: 'Group Deleted',
-                    description: `Group "${cohortToRemove.name}" was removed.`
-                });
-            }
-        } catch (err) {
-            console.error('Error removing cohort:', err);
-            throw err;
         }
     };
 
     const updateCohort = async (id: string, name: string, description?: string, teacherId?: string, scheduleType?: ScheduleType, timeSlotId?: string) => {
-        try {
-            const res = await fetch('/api/groups', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id,
-                    name,
-                    description: description || '',
-                    teacherId: teacherId || '',
-                    scheduleType: scheduleType || 'MWF',
-                    timeSlotId: timeSlotId || ''
-                })
-            });
-            const updated = await res.json();
-            setCohorts(prev => prev.map(c => c.id === id ? updated : c));
-        } catch (err) {
-            console.error('Error updating cohort:', err);
-            throw err;
-        }
+        const updatedCohort: Cohort = {
+            id,
+            name,
+            description: description || '',
+            teacherId: teacherId || '',
+            scheduleType: scheduleType || 'MWF',
+            timeSlotId: timeSlotId || ''
+        };
+        setCohorts(prev => prev.map(c => c.id === id ? updatedCohort : c));
     };
 
     const assignToSlot = async (cohortId: string, timeSlotId: string | null) => {
-        const cohort = cohorts.find(c => c.id === cohortId);
-        if (cohort) {
-            await updateCohort(cohortId, cohort.name, cohort.description, cohort.teacherId, cohort.scheduleType, timeSlotId || undefined);
-        }
+        setCohorts(prev => prev.map(c =>
+            c.id === cohortId ? { ...c, timeSlotId: timeSlotId || undefined } : c
+        ));
     };
 
     return (
-        <CohortContext.Provider value={{ cohorts, loading, refreshing, loadCohorts, addCohort, removeCohort, updateCohort, assignToSlot }}>
+        <CohortContext.Provider value={{ cohorts, loading: false, refreshing, loadCohorts, addCohort, removeCohort, updateCohort, assignToSlot }}>
             {children}
         </CohortContext.Provider>
     );

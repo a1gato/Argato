@@ -34,104 +34,51 @@ const DEFAULT_ADMIN: User = {
 };
 
 export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [users, setUsers] = useState<User[]>([DEFAULT_ADMIN]);
+    const [users, setUsers] = useState<User[]>(() => {
+        const saved = localStorage.getItem('fastit_users');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                const hasAdmin = parsed.some((u: any) => u.employeeId === 'admin');
+                return hasAdmin ? parsed : [DEFAULT_ADMIN, ...parsed];
+            } catch (e) {
+                return [DEFAULT_ADMIN];
+            }
+        }
+        return [DEFAULT_ADMIN];
+    });
     const { addLog } = useLogs();
 
-    const loadUsers = async () => {
-        try {
-            const res = await fetch(`/api/users?t=${Date.now()}`);
-            const data = await res.json();
-            if (Array.isArray(data)) {
-                // Ensure admin is always present
-                const hasAdmin = data.some(u => u.employeeId === 'admin');
-                setUsers(hasAdmin ? data : [DEFAULT_ADMIN, ...data]);
-            }
-        } catch (err) {
-            console.error('Failed to load users:', err);
-        }
-    };
-
     useEffect(() => {
-        loadUsers();
-    }, []);
+        localStorage.setItem('fastit_users', JSON.stringify(users));
+    }, [users]);
 
     const addUser = async (userData: Omit<User, 'id'>) => {
-        try {
-            const res = await fetch('/api/users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(userData)
-            });
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || 'Failed to create user');
-            }
-            const newUser = await res.json();
-            setUsers(prev => [...prev, newUser]);
-            addLog({
-                type: 'user',
-                action: 'User Created',
-                description: `New user ${newUser.firstName} ${newUser.lastName} (${newUser.role}) was added.`
-            });
-            return newUser;
-        } catch (err: any) {
-            console.error('Error adding user:', err);
-            alert(`Error: ${err.message}`);
-            throw err;
-        }
+        const newUser = {
+            ...userData,
+            id: crypto.randomUUID()
+        };
+        setUsers(prev => [...prev, newUser]);
+        addLog({
+            type: 'user',
+            action: 'User Created',
+            description: `New user ${newUser.firstName} ${newUser.lastName} (${newUser.role}) was added.`
+        });
     };
 
-    const updateUser = async (id: string, updates: Partial<User>) => {
-        try {
-            const user = users.find(u => u.id === id);
-            if (!user) return;
-
-            const updatedUser = { ...user, ...updates };
-            const res = await fetch('/api/users', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedUser)
-            });
-
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || 'Failed to update user');
-            }
-
-            setUsers(prev => prev.map(u => u.id === id ? updatedUser : u));
-        } catch (err: any) {
-            console.error('Error updating user:', err);
-            alert(`Error updating: ${err.message}`);
-            throw err;
-        }
+    const updateUser = (id: string, updates: Partial<User>) => {
+        setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
     };
 
     const deleteUser = async (id: string) => {
-        try {
-            const userToDelete = users.find(u => u.id === id);
-            if (userToDelete) {
-                const res = await fetch('/api/users', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id })
-                });
-
-                if (!res.ok) {
-                    const errorData = await res.json();
-                    throw new Error(errorData.error || 'Failed to delete user');
-                }
-
-                setUsers(prev => prev.filter(u => u.id !== id));
-                addLog({
-                    type: 'user',
-                    action: 'User Deleted',
-                    description: `User ${userToDelete.firstName} ${userToDelete.lastName} was removed.`
-                });
-            }
-        } catch (err: any) {
-            console.error('Error deleting user:', err);
-            alert(`Error deleting: ${err.message}`);
-            throw err;
+        const userToDelete = users.find(u => u.id === id);
+        if (userToDelete) {
+            setUsers(prev => prev.filter(u => u.id !== id));
+            addLog({
+                type: 'user',
+                action: 'User Deleted',
+                description: `User ${userToDelete.firstName} ${userToDelete.lastName} was removed.`
+            });
         }
     };
 

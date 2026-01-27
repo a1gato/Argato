@@ -21,15 +21,30 @@ export default async function handler(request: VercelRequest, response: VercelRe
             return response.status(500).json({ error: 'Missing configuration' });
         }
 
-        const auth = new google.auth.JWT({
-            email,
-            key: privateKey,
-            scopes: SCOPES,
-        });
-
+        const auth = new google.auth.JWT({ email, key: privateKey, scopes: SCOPES });
         const sheets = google.sheets({ version: 'v4', auth });
-        const sheetIds = [PRIMARY_SHEET_ID];
 
+        const envIds = (process.env.GOOGLE_SHEET_ID || '').split(',').map(id => id.trim()).filter(Boolean);
+        const configIds = [
+            "1ozJmAzAVf-ISwa6pvtSrwQSkkKpxE5sUpJVTKH_Xw-k",
+            "1_GwFosb5GihN6DFNLQtY2P9vNiBruRm7LO85_WQ-Y8k"
+        ];
+        const allSheetIds = Array.from(new Set([...envIds, ...configIds]));
+
+        async function getSpreadsheetId() {
+            for (const id of allSheetIds) {
+                try {
+                    const meta = await sheets.spreadsheets.get({ spreadsheetId: id });
+                    const title = meta.data.properties?.title || '';
+                    const hasDataTabs = meta.data.sheets?.some(s => ['Users', 'Students', 'Groups', 'TimeSlots'].includes(s.properties?.title || ''));
+                    if (title.toUpperCase().includes('REG') || hasDataTabs) return id;
+                } catch (e) { continue; }
+            }
+            return allSheetIds[0];
+        }
+
+        const spreadsheetId = await getSpreadsheetId();
+        const sheetIds = [spreadsheetId];
         // LOG FOR DEBUGGING
         console.log('Target Spreadsheet:', PRIMARY_SHEET_ID);
 
