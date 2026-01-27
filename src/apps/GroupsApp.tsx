@@ -186,7 +186,7 @@ export const GroupsApp: React.FC = () => {
                         <form onSubmit={handleSubmit} className="space-y-8">
                             <div className="space-y-6">
                                 <div>
-                                    <label className="block text-[13px] font-bold text-slate-400 mb-2 uppercase tracking-widest pl-1">Name of the Group</label>
+                                    <label className="block text-[13px] font-bold text-slate-400 mb-2 uppercase tracking-widest pl-1">Group Title</label>
                                     <input
                                         type="text"
                                         required
