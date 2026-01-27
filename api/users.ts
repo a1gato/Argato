@@ -20,7 +20,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
         const auth = new google.auth.JWT({ email, key: privateKey, scopes: SCOPES });
         const sheets = google.sheets({ version: 'v4', auth });
 
-        const spreadsheetId = "1ozJmAzAVf-ISwa6pvtSrwQSkkKpxE5sUpJVTKH_Xw-k";
+        // Get the first ID from environment variable or fallback to known ID
+        const spreadsheetId = (process.env.GOOGLE_SHEET_ID || '').split(',')[0]?.trim() || "1ozJmAzAVf-ISwa6pvtSrwQSkkKpxE5sUpJVTKH_Xw-k";
 
         switch (method) {
             case 'GET': {
