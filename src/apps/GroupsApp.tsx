@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'; // Deployment trigger v1.1.0
 import { useCohorts, type Cohort, type ScheduleType } from '../context/CohortContext';
 import { useUsers } from '../context/UsersContext';
 import { useGroups } from '../context/GroupsContext';
