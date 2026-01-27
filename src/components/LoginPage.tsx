@@ -84,9 +84,6 @@ export const LoginPage: React.FC = () => {
                         <p className="text-xs text-slate-400">
                             Forgot your credentials? Contact your administrator.
                         </p>
-                        <p className="text-[10px] text-slate-300 mt-4 select-none">
-                            System Version 1.1.4 • Cloud Sync Active
-                        </p>
                     </div>
                 </form>
             </div>
