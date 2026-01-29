@@ -13,7 +13,7 @@ export const GroupsApp: React.FC = () => {
     const [editingId, setEditingId] = useState<string | null>(null);
 
     const teachers = (users || []).filter(u => u && u.role === 'teacher');
-    const timeSlots = (groups || []).filter(g => g && !g.parentId);
+    const timeSlots = (groups || []).filter(g => g && (!g.parentId || g.parentId === 'null' || g.parentId === 'undefined'));
 
     const handleOpenModal = (cohort?: Cohort) => {
         if (cohort) {

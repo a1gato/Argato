@@ -50,7 +50,7 @@ export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             return newGroup.id;
         } catch (err) {
             console.error('Error adding group:', err);
-            // Fallback to local if API fails (optional, based on requirement)
+            alert('Failed to save time slot to Google Sheets. Please check your connection or spreadsheet permissions.');
             return '';
         }
     };
