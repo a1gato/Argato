@@ -7,8 +7,9 @@ import { useUsers } from '../context/UsersContext';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 // Helper to parse time strings like "14:00", "2:00 PM", "9am" into comparable minutes from midnight
-const parseTime = (timeStr: string): number => {
-    const cleanStr = timeStr.toLowerCase().replace(/\s/g, '');
+const parseTime = (timeStr: string | undefined | null): number => {
+    if (!timeStr || typeof timeStr !== 'string') return 0;
+    const cleanStr = (timeStr || '').toLowerCase().replace(/\s/g, '');
     let hours = 0;
     let minutes = 0;
 
@@ -122,8 +123,11 @@ export const TimeTableApp: React.FC = () => {
 
     // Get sorted time slots
     const timeSlots = groups
-        .filter(g => g && !g.parentId)
-        .sort((a, b) => parseTime(a.name) - parseTime(b.name));
+        .filter(g => g && g.name && !g.parentId)
+        .sort((a, b) => {
+            if (!a || !b) return 0;
+            return parseTime(a.name) - parseTime(b.name);
+        });
 
     // Map student counts
     const studentCountMap = students.reduce((acc, s) => {

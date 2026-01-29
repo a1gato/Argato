@@ -115,10 +115,10 @@ export const StudentsApp: React.FC = () => {
     };
 
     const filteredStudents = students.filter(student =>
-        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.surname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.group.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.phone.includes(searchTerm)
+        (student.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+        (student.surname || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+        (student.group || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+        (student.phone || '').includes(searchTerm || '')
     );
 
     if (loading && students.length === 0) {

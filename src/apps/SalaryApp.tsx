@@ -45,31 +45,31 @@ export const SalaryApp: React.FC = () => {
 
     // Calculate Unique Teachers
     const uniqueTeachers = Array.from(new Set([
-        ...data.salaries.map(s => s.teacherName.trim()),
-        ...data.fines.map(f => f.teacherName.trim())
+        ...(data?.salaries || []).map(s => (s?.teacherName || '').trim()),
+        ...(data?.fines || []).map(f => (f?.teacherName || '').trim())
     ])).filter(t => {
-        if (!t) return false;
+        if (!t || typeof t !== 'string') return false;
         const lower = t.toLowerCase();
         const technicalWords = ['total', 'grand total', 'subtotal', 'income', 'month', 'teacher', 'fio', 'answer', 'no fines', 'empty', '---', 'score', 'salary', 'finance', 'system root', 'unassigned'];
         if (technicalWords.includes(lower)) return false;
         if (lower.includes('unassigned')) return false;
         return t.length > 2;
-    }).sort((a, b) => a.localeCompare(b));
+    }).sort((a, b) => (a || '').localeCompare(b || ''));
 
     // Global Statistics
     const totalSalaryAmount = (data?.salaries || []).reduce((sum, s) => sum + parseCurrency(s?.total), 0);
     const totalFinesAmount = (data?.fines || []).reduce((sum, f) => sum + parseCurrency(f?.amount), 0);
 
     const filteredTeachers = uniqueTeachers.filter(t =>
-        t.toLowerCase().includes(searchTerm.toLowerCase())
+        (t || '').toLowerCase().includes((searchTerm || '').toLowerCase())
     );
 
     // Current selection data
     const teacherSalariesRaw = selectedTeacher
-        ? data.salaries.filter(s => s.teacherName.toLowerCase().trim() === selectedTeacher.toLowerCase().trim())
+        ? (data?.salaries || []).filter(s => (s?.teacherName || '').toLowerCase().trim() === (selectedTeacher || '').toLowerCase().trim())
         : [];
     const teacherFines = selectedTeacher
-        ? data.fines.filter(f => f.teacherName.toLowerCase().trim() === selectedTeacher.toLowerCase().trim())
+        ? (data?.fines || []).filter(f => (f?.teacherName || '').toLowerCase().trim() === (selectedTeacher || '').toLowerCase().trim())
         : [];
 
     if (loading) {
@@ -235,14 +235,16 @@ export const SalaryApp: React.FC = () => {
                         ) : (
                             <div className="space-y-10">
                                 <div className="flex justify-between items-end border-b border-gray-100 pb-8">
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-4">
-                                            <span className="bg-indigo-600 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Secured folder</span>
-                                            <span className="text-slate-500 text-[10px] font-bold font-mono">STAFF_{selectedTeacher.substring(0, 4).toUpperCase()}</span>
+                                    {selectedTeacher && (
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <span className="bg-indigo-600 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Secured folder</span>
+                                                <span className="text-slate-500 text-[10px] font-bold font-mono">STAFF_{selectedTeacher.substring(0, 4).toUpperCase()}</span>
+                                            </div>
+                                            <h1 className="text-6xl font-black text-slate-900 tracking-tighter">{selectedTeacher}</h1>
+                                            <p className="text-slate-400 mt-2 text-sm font-medium uppercase tracking-[0.2em]">Detailed Ledger Analytics</p>
                                         </div>
-                                        <h1 className="text-6xl font-black text-slate-900 tracking-tighter">{selectedTeacher}</h1>
-                                        <p className="text-slate-400 mt-2 text-sm font-medium uppercase tracking-[0.2em]">Detailed Ledger Analytics</p>
-                                    </div>
+                                    )}
                                 </div>
 
                                 <div className="space-y-6">
@@ -261,10 +263,11 @@ export const SalaryApp: React.FC = () => {
                                             </thead>
                                             <tbody className="divide-y divide-gray-50">
                                                 {(teacherSalariesRaw || []).map((s, i) => {
-                                                    const matchingFines = (teacherFines || []).filter(f =>
-                                                        f.month.toLowerCase().includes(s.month.toLowerCase()) ||
-                                                        s.month.toLowerCase().includes(f.month.toLowerCase())
-                                                    );
+                                                    const matchingFines = (teacherFines || []).filter(f => {
+                                                        const fMonth = (f?.month || '').toLowerCase();
+                                                        const sMonth = (s?.month || '').toLowerCase();
+                                                        return (fMonth && sMonth) && (fMonth.includes(sMonth) || sMonth.includes(fMonth));
+                                                    });
                                                     return (
                                                         <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
                                                             <td className="px-8 py-6 font-black text-slate-800 tracking-tight">{s.month || '-'}</td>
