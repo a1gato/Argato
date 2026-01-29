@@ -27,74 +27,114 @@ const StudentsContext = createContext<StudentsContextType | undefined>(undefined
 
 export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { addLog } = useLogs();
-    const [students, setUsers] = useState<Student[]>(() => {
-        const saved = localStorage.getItem('fastit_students');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [students, setStudents] = useState<Student[]>([]);
+    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-
-    useEffect(() => {
-        localStorage.setItem('fastit_students', JSON.stringify(students));
-    }, [students]);
 
     const loadStudents = async () => {
         setRefreshing(true);
-        // Already loaded from LocalStorage on mount
-        setRefreshing(false);
+        try {
+            const res = await fetch('/api/students');
+            if (!res.ok) throw new Error('Failed to fetch students');
+            const data = await res.json();
+            setStudents(data);
+        } catch (err) {
+            console.error('Error loading students:', err);
+        } finally {
+            setRefreshing(false);
+            setLoading(false);
+        }
     };
 
-    const addStudent = async (studentData: Omit<Student, 'id' | 'status'>) => {
-        const newStudent: Student = {
-            ...studentData,
-            id: crypto.randomUUID(),
-            status: 'Active'
-        };
-        setUsers(prev => [...prev, newStudent]);
+    useEffect(() => {
+        loadStudents();
+    }, []);
 
-        addLog({
-            type: 'student',
-            action: 'Student Enrolled',
-            description: `New student ${newStudent.name} ${newStudent.surname} was enrolled in ${newStudent.group}.`
-        });
+    const addStudent = async (studentData: Omit<Student, 'id' | 'status'>) => {
+        try {
+            const res = await fetch('/api/students', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(studentData)
+            });
+            if (!res.ok) throw new Error('Failed to add student');
+            const newStudent = await res.json();
+            setStudents(prev => [...prev, newStudent]);
+
+            addLog({
+                type: 'student',
+                action: 'Student Enrolled',
+                description: `New student ${newStudent.name} ${newStudent.surname} was enrolled in ${newStudent.group}.`
+            });
+        } catch (err) {
+            console.error('Error adding student:', err);
+            alert('Failed to save student to Google Sheets.');
+        }
     };
 
     const updateStudent = async (student: Student) => {
-        setUsers(prev => prev.map(s => s.id === student.id ? student : s));
+        try {
+            const res = await fetch('/api/students', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(student)
+            });
+            if (!res.ok) throw new Error('Failed to update student');
+            const updated = await res.json();
+            setStudents(prev => prev.map(s => s.id === updated.id ? updated : s));
 
-        addLog({
-            type: 'student',
-            action: 'Student Updated',
-            description: `Student ${student.name} ${student.surname} records were updated.`
-        });
+            addLog({
+                type: 'student',
+                action: 'Student Updated',
+                description: `Student ${student.name} ${student.surname} records were updated.`
+            });
+        } catch (err) {
+            console.error('Error updating student:', err);
+        }
     };
 
     const removeStudent = async (id: string) => {
         const studentToRemove = students.find(s => s.id === id);
         if (studentToRemove) {
-            setUsers(prev => prev.filter(student => student.id !== id));
-            addLog({
-                type: 'student',
-                action: 'Student Removed',
-                description: `Student ${studentToRemove.name} ${studentToRemove.surname} was removed from the system.`
-            });
+            try {
+                const res = await fetch('/api/students', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, spreadsheetId: (studentToRemove as any).spreadsheetId })
+                });
+                if (!res.ok) throw new Error('Failed to delete student');
+
+                setStudents(prev => prev.filter(student => student.id !== id));
+                addLog({
+                    type: 'student',
+                    action: 'Student Removed',
+                    description: `Student ${studentToRemove.name} ${studentToRemove.surname} was removed from the system.`
+                });
+            } catch (err) {
+                console.error('Error removing student:', err);
+            }
         }
     };
 
     const bulkRemoveStudents = async (studentRefs: { id: string }[]) => {
-        const idsToRemove = studentRefs.map(ref => ref.id);
-        setUsers(prev => prev.filter(s => !idsToRemove.includes(s.id)));
+        // Implement bulk delete by calling removeStudent for each
+        for (const ref of studentRefs) {
+            await removeStudent(ref.id);
+        }
     };
 
     const toggleStudentStatus = async (id: string) => {
-        setUsers(prev => prev.map(s =>
-            s.id === id ? { ...s, status: s.status === 'Active' ? 'Inactive' : 'Active' } : s
-        ));
+        const student = students.find(s => s.id === id);
+        if (student) {
+            const updatedStudent = { ...student, status: (student.status === 'Active' ? 'Inactive' : 'Active') as 'Active' | 'Inactive' };
+            await updateStudent(updatedStudent);
+        }
     };
 
     return (
         <StudentsContext.Provider value={{
             students,
-            loading: false,
+            loading,
             refreshing,
             loadStudents,
             addStudent,

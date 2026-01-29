@@ -110,6 +110,26 @@ export default async function handler(request: VercelRequest, response: VercelRe
                 return response.status(201).json({ id: newUserId, employeeId, firstName, lastName, password, role, telephone, email: userEmail });
             }
 
+            case 'PUT': {
+                const { id, employeeId, firstName, lastName, password, role, telephone, email: userEmail } = request.body;
+                const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: "'Users'!A:A" });
+                const rows = res.data.values || [];
+                const rowIndex = rows.findIndex(row => row[0] === id) + 1;
+
+                if (rowIndex === 0) return response.status(404).json({ error: 'User not found' });
+
+                await sheets.spreadsheets.values.update({
+                    spreadsheetId,
+                    range: `'Users'!A${rowIndex}:H${rowIndex}`,
+                    valueInputOption: 'RAW',
+                    requestBody: {
+                        values: [[id, employeeId, firstName, lastName, password, role, telephone, userEmail]]
+                    }
+                });
+
+                return response.status(200).json({ id, employeeId, firstName, lastName, password, role, telephone, email: userEmail });
+            }
+
             case 'DELETE': {
                 const { id } = request.body;
                 const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: "'Users'!A:A" });

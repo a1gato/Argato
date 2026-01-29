@@ -14,8 +14,9 @@ export interface User {
 
 interface UsersContextType {
     users: User[];
+    loading: boolean;
     addUser: (user: Omit<User, 'id'>) => Promise<void>;
-    updateUser: (id: string, updates: Partial<User>) => void;
+    updateUser: (id: string, updates: Partial<User>) => Promise<void>;
     deleteUser: (id: string) => Promise<void>;
     getUserByEmployeeId: (employeeId: string) => User | undefined;
 }
@@ -34,51 +35,91 @@ const DEFAULT_ADMIN: User = {
 };
 
 export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [users, setUsers] = useState<User[]>(() => {
-        const saved = localStorage.getItem('fastit_users');
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                const hasAdmin = parsed.some((u: any) => u.employeeId === 'admin');
-                return hasAdmin ? parsed : [DEFAULT_ADMIN, ...parsed];
-            } catch (e) {
-                return [DEFAULT_ADMIN];
-            }
-        }
-        return [DEFAULT_ADMIN];
-    });
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
     const { addLog } = useLogs();
 
-    useEffect(() => {
-        localStorage.setItem('fastit_users', JSON.stringify(users));
-    }, [users]);
+    const loadUsers = async () => {
+        try {
+            const res = await fetch('/api/users');
+            if (!res.ok) throw new Error('Failed to fetch users');
+            const data = await res.json();
 
-    const addUser = async (userData: Omit<User, 'id'>) => {
-        const newUser = {
-            ...userData,
-            id: crypto.randomUUID()
-        };
-        setUsers(prev => [...prev, newUser]);
-        addLog({
-            type: 'user',
-            action: 'User Created',
-            description: `New user ${newUser.firstName} ${newUser.lastName} (${newUser.role}) was added.`
-        });
+            // Ensure at least the default admin exists
+            const hasAdmin = data.some((u: User) => u.employeeId === 'admin');
+            setUsers(hasAdmin ? data : [DEFAULT_ADMIN, ...data]);
+        } catch (err) {
+            console.error('Error loading users:', err);
+            setUsers([DEFAULT_ADMIN]);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const updateUser = (id: string, updates: Partial<User>) => {
-        setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+    useEffect(() => {
+        loadUsers();
+    }, []);
+
+    const addUser = async (userData: Omit<User, 'id'>) => {
+        try {
+            const res = await fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            });
+            if (!res.ok) throw new Error('Failed to create user');
+            const newUser = await res.json();
+            setUsers(prev => [...prev, newUser]);
+
+            addLog({
+                type: 'user',
+                action: 'User Created',
+                description: `New user ${newUser.firstName} ${newUser.lastName} (${newUser.role}) was added.`
+            });
+        } catch (err) {
+            console.error('Error creating user:', err);
+        }
+    };
+
+    const updateUser = async (id: string, updates: Partial<User>) => {
+        const user = users.find(u => u.id === id);
+        if (user) {
+            const updatedUser = { ...user, ...updates };
+            try {
+                const res = await fetch('/api/users', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedUser)
+                });
+                if (!res.ok) throw new Error('Failed to update user');
+                const result = await res.json();
+                setUsers(prev => prev.map(u => u.id === id ? result : u));
+            } catch (err) {
+                console.error('Error updating user:', err);
+            }
+        }
     };
 
     const deleteUser = async (id: string) => {
         const userToDelete = users.find(u => u.id === id);
         if (userToDelete) {
-            setUsers(prev => prev.filter(u => u.id !== id));
-            addLog({
-                type: 'user',
-                action: 'User Deleted',
-                description: `User ${userToDelete.firstName} ${userToDelete.lastName} was removed.`
-            });
+            try {
+                const res = await fetch('/api/users', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                if (!res.ok) throw new Error('Failed to delete user');
+
+                setUsers(prev => prev.filter(u => u.id !== id));
+                addLog({
+                    type: 'user',
+                    action: 'User Deleted',
+                    description: `User ${userToDelete.firstName} ${userToDelete.lastName} was removed.`
+                });
+            } catch (err) {
+                console.error('Error deleting user:', err);
+            }
         }
     };
 
@@ -87,7 +128,7 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     return (
-        <UsersContext.Provider value={{ users, addUser, updateUser, deleteUser, getUserByEmployeeId }}>
+        <UsersContext.Provider value={{ users, loading, addUser, updateUser, deleteUser, getUserByEmployeeId }}>
             {children}
         </UsersContext.Provider>
     );
