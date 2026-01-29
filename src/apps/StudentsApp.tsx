@@ -12,7 +12,6 @@ export const StudentsApp: React.FC = () => {
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
     const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set());
     const [searchTerm, setSearchTerm] = useState('');
-    const [connStatus, setConnStatus] = useState<'Checking' | 'Online' | 'Offline'>('Checking');
 
     const [formData, setFormData] = useState({
         name: '',
@@ -30,18 +29,6 @@ export const StudentsApp: React.FC = () => {
         group: ''
     });
 
-    React.useEffect(() => {
-        const checkConn = async () => {
-            try {
-                const res = await fetch('/api/students');
-                if (res.ok) setConnStatus('Online');
-                else setConnStatus('Offline');
-            } catch {
-                setConnStatus('Offline');
-            }
-        };
-        checkConn();
-    }, [students]);
 
     const handleOpenModal = (student?: Student) => {
         if (student) {
@@ -93,10 +80,9 @@ export const StudentsApp: React.FC = () => {
                 handleCloseModal();
             } catch (err: any) {
                 console.error('Submission Error:', err);
-                let msg = 'Unknown error';
+                let msg = 'An unexpected error occurred while saving.';
                 if (err instanceof Error) msg = err.message;
-                else if (typeof err === 'string') msg = err;
-                alert(`STATION ERROR: ${msg}\n\nPlease check your internet connection or spreadsheet permissions.`);
+                alert(`Error: ${msg}\n\nPlease try again.`);
             }
         }
     };
@@ -121,7 +107,7 @@ export const StudentsApp: React.FC = () => {
         if (window.confirm(`Are you sure you want to delete ${count} students?`)) {
             const studentsToDelete = students
                 .filter(s => selectedStudentIds.has(s.id))
-                .map(s => ({ id: s.id, spreadsheetId: s.spreadsheetId }));
+                .map(s => ({ id: s.id }));
 
             await bulkRemoveStudents(studentsToDelete);
             setSelectedStudentIds(new Set());
@@ -129,10 +115,10 @@ export const StudentsApp: React.FC = () => {
     };
 
     const filteredStudents = students.filter(student =>
-        student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.surname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.group.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.phone.includes(searchTerm)
+        (student.name || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+        (student.surname || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+        (student.group || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+        (student.phone || '').includes(searchTerm || '')
     );
 
     if (loading && students.length === 0) {
@@ -317,7 +303,7 @@ export const StudentsApp: React.FC = () => {
                                                 <button
                                                     onClick={() => {
                                                         if (window.confirm('Are you sure you want to delete this student record?')) {
-                                                            removeStudent(student.id, student.spreadsheetId);
+                                                            removeStudent(student.id);
                                                         }
                                                     }}
                                                     className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
@@ -341,17 +327,12 @@ export const StudentsApp: React.FC = () => {
             <div className="max-w-7xl mx-auto mt-8 flex items-center justify-between text-[11px] text-slate-400 font-medium uppercase tracking-widest px-4 border-t border-slate-100 pt-6 pb-12">
                 <div className="flex items-center gap-4">
                     <span className="flex items-center gap-1.5 font-bold">
-                        <span className={`w-2 h-2 rounded-full ${connStatus === 'Online' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : connStatus === 'Checking' ? 'bg-amber-400 animate-pulse' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'}`}></span>
-                        {connStatus === 'Online' ? 'Cloud Sync Online' : connStatus === 'Checking' ? 'Checking Sync...' : 'Sync Station Offline'}
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+                        Local Storage Active
                     </span>
-                    <span className="text-slate-200">|</span>
-                    <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-500">DB: 1ozJm...w-k</span>
                 </div>
                 <div className="flex items-center gap-3">
-                    {connStatus === 'Offline' && (
-                        <span className="text-rose-500 font-bold border-r border-slate-200 pr-3 mr-3">Backend Server Missing</span>
-                    )}
-                    <span>Build v1.1.2 • DEPLOYED</span>
+                    <span>Build v1.1.3 • STABLE</span>
                 </div>
             </div>
 

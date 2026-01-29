@@ -138,15 +138,18 @@ export const TeachersApp: React.FC = () => {
     };
 
     const filteredTeachers = teachers.filter(t =>
-        `${t.firstName} ${t.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.employeeId.toLowerCase().includes(searchTerm.toLowerCase())
+        `${t.firstName || ''} ${t.lastName || ''}`.toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+        (t.employeeId || '').toLowerCase().includes((searchTerm || '').toLowerCase())
     );
 
     // Filter fines for the current teacher
     const teacherFines = editingTeacher
         ? sheetData.fines.filter(f => {
-            const fullName = `${editingTeacher.firstName} ${editingTeacher.lastName}`.toLowerCase();
-            return f.teacherName.toLowerCase().includes(fullName) || fullName.includes(f.teacherName.toLowerCase());
+            const firstName = editingTeacher.firstName || '';
+            const lastName = editingTeacher.lastName || '';
+            const fullName = `${firstName} ${lastName}`.toLowerCase().trim();
+            const fTeacherName = (f.teacherName || '').toLowerCase().trim();
+            return fTeacherName.includes(fullName) || fullName.includes(fTeacherName);
         })
         : [];
 

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
 export interface Group {
     id: string;
@@ -16,55 +16,30 @@ interface GroupsContextType {
 const GroupsContext = createContext<GroupsContextType | undefined>(undefined);
 
 export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [groups, setGroups] = useState<Group[]>([]);
+    const [groups, setGroups] = useState<Group[]>(() => {
+        const saved = localStorage.getItem('fastit_timeslots');
+        return saved ? JSON.parse(saved) : [];
+    });
 
-    const loadGroups = async () => {
-        try {
-            const res = await fetch('/api/timeslots');
-            const data = await res.json();
-            if (Array.isArray(data)) {
-                setGroups(data);
-            }
-        } catch (err) {
-            console.error('Error loading time slots:', err);
-        }
-    };
-
-    React.useEffect(() => {
-        loadGroups();
-    }, []);
+    useEffect(() => {
+        localStorage.setItem('fastit_timeslots', JSON.stringify(groups));
+    }, [groups]);
 
     const addGroup = async (name: string, parentId: string | null = null) => {
-        try {
-            const res = await fetch('/api/timeslots', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, parentId })
-            });
-            const newGroup = await res.json();
-            setGroups(prev => [...prev, newGroup]);
-            return newGroup.id;
-        } catch (err) {
-            console.error('Error adding time slot:', err);
-            return '';
-        }
+        const newGroup: Group = {
+            id: crypto.randomUUID(),
+            name,
+            parentId
+        };
+        setGroups(prev => [...prev, newGroup]);
+        return newGroup.id;
     };
 
     const removeGroup = async (id: string) => {
-        try {
-            await fetch('/api/timeslots', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id })
-            });
-            setGroups(prev => prev.filter(g => g.id !== id && g.parentId !== id));
-        } catch (err) {
-            console.error('Error removing time slot:', err);
-        }
+        setGroups(prev => prev.filter(g => g.id !== id && g.parentId !== id));
     };
 
     const moveGroup = (groupId: string, newParentId: string | null) => {
-        // Local only for now, can be expanded to API if needed
         setGroups(prev => prev.map(g =>
             g.id === groupId ? { ...g, parentId: newParentId } : g
         ));

@@ -43,7 +43,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         const safeOptions = (options || []).filter(opt => opt && typeof opt.label === 'string');
         if (!searchTerm) return safeOptions;
         return safeOptions.filter(opt =>
-            opt.label.toLowerCase().includes(searchTerm.toLowerCase())
+            (opt.label || '').toLowerCase().includes((searchTerm || '').toLowerCase())
         );
     }, [options, searchTerm]);
 
@@ -139,7 +139,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                                         )}
                                     </li>
                                 ))}
-                                {onCreate && searchTerm && !filteredOptions.some(o => o.label.toLowerCase() === searchTerm.toLowerCase()) && (
+                                {onCreate && (searchTerm || '') && !filteredOptions.some(o => (o.label || '').toLowerCase() === (searchTerm || '').toLowerCase()) && (
                                     <li
                                         onClick={() => {
                                             onCreate(searchTerm);
