@@ -58,7 +58,10 @@ export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(studentData)
             });
-            if (!res.ok) throw new Error('Failed to add student');
+            if (!res.ok) {
+                const errorBody = await res.json().catch(() => ({}));
+                throw new Error(JSON.stringify(errorBody) || 'Failed to add student');
+            }
             const newStudent = await res.json();
             setStudents(prev => [...prev, newStudent]);
 
@@ -67,9 +70,16 @@ export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }
                 action: 'Student Enrolled',
                 description: `New student ${newStudent.name} ${newStudent.surname} was enrolled in ${newStudent.group}.`
             });
-        } catch (err) {
-            console.error('Error adding student:', err);
-            alert('Failed to save student to Google Sheets.');
+        } catch (err: any) {
+            console.error('Students API Error:', err);
+            let msg = 'Database Update Failed.';
+            try {
+                const errorData = JSON.parse(err.message);
+                if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
+            } catch (e) {
+                msg += `\n\n${err.message}`;
+            }
+            alert(msg);
         }
     };
 
@@ -80,7 +90,10 @@ export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(student)
             });
-            if (!res.ok) throw new Error('Failed to update student');
+            if (!res.ok) {
+                const errorBody = await res.json().catch(() => ({}));
+                throw new Error(JSON.stringify(errorBody) || 'Failed to update student');
+            }
             const updated = await res.json();
             setStudents(prev => prev.map(s => s.id === updated.id ? updated : s));
 
@@ -89,8 +102,16 @@ export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }
                 action: 'Student Updated',
                 description: `Student ${student.name} ${student.surname} records were updated.`
             });
-        } catch (err) {
-            console.error('Error updating student:', err);
+        } catch (err: any) {
+            console.error('Students API Error:', err);
+            let msg = 'Database Update Failed.';
+            try {
+                const errorData = JSON.parse(err.message);
+                if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
+            } catch (e) {
+                msg += `\n\n${err.message}`;
+            }
+            alert(msg);
         }
     };
 
@@ -103,7 +124,10 @@ export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id, spreadsheetId: (studentToRemove as any).spreadsheetId })
                 });
-                if (!res.ok) throw new Error('Failed to delete student');
+                if (!res.ok) {
+                    const errorBody = await res.json().catch(() => ({}));
+                    throw new Error(JSON.stringify(errorBody) || 'Failed to remove student');
+                }
 
                 setStudents(prev => prev.filter(student => student.id !== id));
                 addLog({
@@ -111,8 +135,16 @@ export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }
                     action: 'Student Removed',
                     description: `Student ${studentToRemove.name} ${studentToRemove.surname} was removed from the system.`
                 });
-            } catch (err) {
-                console.error('Error removing student:', err);
+            } catch (err: any) {
+                console.error('Students API Error:', err);
+                let msg = 'Failed to remove student.';
+                try {
+                    const errorData = JSON.parse(err.message);
+                    if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
+                } catch (e) {
+                    msg += `\n\n${err.message}`;
+                }
+                alert(msg);
             }
         }
     };

@@ -48,9 +48,17 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             // Ensure at least the default admin exists
             const hasAdmin = data.some((u: User) => u.employeeId === 'admin');
             setUsers(hasAdmin ? data : [DEFAULT_ADMIN, ...data]);
-        } catch (err) {
-            console.error('Error loading users:', err);
-            setUsers([DEFAULT_ADMIN]);
+        } catch (err: any) {
+            console.error('Users API Error:', err);
+            let msg = 'User Management Sync Failed.';
+            try {
+                const errorData = JSON.parse(err.message);
+                if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
+            } catch (e) {
+                msg += `\n\n${err.message}`;
+            }
+            alert(msg);
+            setUsers([DEFAULT_ADMIN]); // Keep default admin if loading fails
         } finally {
             setLoading(false);
         }
@@ -67,7 +75,10 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData)
             });
-            if (!res.ok) throw new Error('Failed to create user');
+            if (!res.ok) {
+                const errorBody = await res.json().catch(() => ({}));
+                throw new Error(JSON.stringify(errorBody) || 'Failed to add user');
+            }
             const newUser = await res.json();
             setUsers(prev => [...prev, newUser]);
 
@@ -76,8 +87,16 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 action: 'User Created',
                 description: `New user ${newUser.firstName} ${newUser.lastName} (${newUser.role}) was added.`
             });
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error creating user:', err);
+            let msg = 'Failed to create user.';
+            try {
+                const errorData = JSON.parse(err.message);
+                if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
+            } catch (e) {
+                msg += `\n\n${err.message}`;
+            }
+            alert(msg);
         }
     };
 
@@ -91,11 +110,22 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updatedUser)
                 });
-                if (!res.ok) throw new Error('Failed to update user');
+                if (!res.ok) {
+                    const errorBody = await res.json().catch(() => ({}));
+                    throw new Error(JSON.stringify(errorBody) || 'Failed to update user');
+                }
                 const result = await res.json();
                 setUsers(prev => prev.map(u => u.id === id ? result : u));
-            } catch (err) {
+            } catch (err: any) {
                 console.error('Error updating user:', err);
+                let msg = 'Failed to update user.';
+                try {
+                    const errorData = JSON.parse(err.message);
+                    if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
+                } catch (e) {
+                    msg += `\n\n${err.message}`;
+                }
+                alert(msg);
             }
         }
     };
@@ -109,7 +139,10 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ id })
                 });
-                if (!res.ok) throw new Error('Failed to delete user');
+                if (!res.ok) {
+                    const errorBody = await res.json().catch(() => ({}));
+                    throw new Error(JSON.stringify(errorBody) || 'Failed to delete user');
+                }
 
                 setUsers(prev => prev.filter(u => u.id !== id));
                 addLog({
@@ -117,7 +150,7 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     action: 'User Deleted',
                     description: `User ${userToDelete.firstName} ${userToDelete.lastName} was removed.`
                 });
-            } catch (err) {
+            } catch (err: any) {
                 console.error('Error deleting user:', err);
             }
         }
