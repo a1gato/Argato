@@ -45,13 +45,24 @@ export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, parentId })
             });
-            if (!res.ok) throw new Error('Failed to add group');
+            if (!res.ok) {
+                const errorBody = await res.json().catch(() => ({}));
+                throw new Error(JSON.stringify(errorBody) || 'Failed to add group');
+            }
             const newGroup = await res.json();
             setGroups(prev => [...prev, newGroup]);
             return newGroup.id;
         } catch (err: any) {
             console.error('Error adding group:', err);
-            alert('Failed to save time slot to Google Sheets. Please check your connection or spreadsheet permissions.');
+            let msg = 'Failed to save time slot to Google Sheets.';
+            try {
+                // Try to extract JSON error if possible
+                const errorData = JSON.parse(err.message);
+                if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
+            } catch (e) {
+                msg += `\n\n${err.message}`;
+            }
+            alert(msg);
             return '';
         }
     };
