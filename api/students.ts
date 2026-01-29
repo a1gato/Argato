@@ -44,6 +44,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         }
 
         const spreadsheetId = await getSpreadsheetId();
+        (global as any).lastSpreadsheetId = spreadsheetId;
 
         // LOG FOR DEBUGGING
         console.log('Target Spreadsheet:', spreadsheetId);
@@ -221,6 +222,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
         }
     } catch (error: any) {
         console.error('Students API Error:', error);
-        return response.status(500).json({ error: error.message });
+        const { email } = { email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL };
+        return response.status(500).json({
+            error: error.message,
+            spreadsheetId: (global as any).lastSpreadsheetId, // Tracked during getSpreadsheetId
+            serviceAccount: email
+        });
     }
 }

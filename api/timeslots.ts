@@ -40,6 +40,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         }
 
         const spreadsheetId = await getSpreadsheetId();
+        (global as any).lastSpreadsheetId = spreadsheetId;
 
         switch (method) {
             case 'GET': {
@@ -123,6 +124,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
                 return response.status(405).json({ error: 'Method not allowed' });
         }
     } catch (error: any) {
-        return response.status(500).json({ error: error.message });
+        const { email } = { email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL };
+        return response.status(500).json({
+            error: error.message,
+            spreadsheetId: (global as any).lastSpreadsheetId,
+            serviceAccount: email
+        });
     }
 }

@@ -59,6 +59,8 @@ export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 // Try to extract JSON error if possible
                 const errorData = JSON.parse(err.message);
                 if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
+                if (errorData.spreadsheetId) msg += `\n\nSheet ID: ${errorData.spreadsheetId}`;
+                if (errorData.serviceAccount) msg += `\n\nService Email: ${errorData.serviceAccount}`;
             } catch (e) {
                 msg += `\n\n${err.message}`;
             }

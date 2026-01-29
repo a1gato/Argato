@@ -108,6 +108,8 @@ export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }
             try {
                 const errorData = JSON.parse(err.message);
                 if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
+                if (errorData.spreadsheetId) msg += `\n\nSheet ID: ${errorData.spreadsheetId}`;
+                if (errorData.serviceAccount) msg += `\n\nService Email: ${errorData.serviceAccount}`;
             } catch (e) {
                 msg += `\n\n${err.message}`;
             }
