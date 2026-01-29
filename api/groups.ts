@@ -40,6 +40,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         }
 
         const spreadsheetId = await getSpreadsheetId();
+        (global as any).lastSpreadsheetId = spreadsheetId;
 
         switch (method) {
             case 'GET': {
@@ -183,6 +184,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
         }
     } catch (error: any) {
         console.error('Groups API Error:', error);
-        return response.status(500).json({ error: error.message });
+        const { email } = { email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL };
+        return response.status(500).json({
+            error: error.message,
+            spreadsheetId: (global as any).lastSpreadsheetId,
+            serviceAccount: email
+        });
     }
 }
