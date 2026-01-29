@@ -160,7 +160,10 @@ export const TimeTableApp: React.FC = () => {
         <div className="p-8 w-full h-full flex flex-col bg-slate-50 overflow-hidden">
             <div className="flex items-center justify-between mb-6 flex-shrink-0">
                 <div>
-                    <h2 className="text-3xl font-light text-slate-900">Weekly Schedule</h2>
+                    <h2 className="text-3xl font-light text-slate-900 flex items-center gap-3">
+                        Weekly Schedule
+                        <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-bold">v1.6-SYNC</span>
+                    </h2>
                     <p className="text-slate-500 text-sm mt-1">
                         Today is <span className="font-bold text-blue-600">{currentDayName}</span>, {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>

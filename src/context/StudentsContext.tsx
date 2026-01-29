@@ -38,8 +38,9 @@ export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }
             if (!res.ok) throw new Error('Failed to fetch students');
             const data = await res.json();
             setStudents(data);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error loading students:', err);
+            alert(`Failed to load students: ${err.message}. Please check your connection.`);
         } finally {
             setRefreshing(false);
             setLoading(false);
