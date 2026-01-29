@@ -44,43 +44,39 @@ export default async function handler(request: VercelRequest, response: VercelRe
         }
 
         const spreadsheetId = await getSpreadsheetId();
-        const sheetIds = [spreadsheetId];
+
         // LOG FOR DEBUGGING
-        console.log('Target Spreadsheet:', PRIMARY_SHEET_ID);
+        console.log('Target Spreadsheet:', spreadsheetId);
 
         switch (method) {
             case 'GET': {
                 let allStudents: any[] = [];
-                for (const spreadsheetId of sheetIds) {
-                    try {
-                        const metadata = await sheets.spreadsheets.get({ spreadsheetId });
-                        const hasStudentsSheet = metadata.data.sheets?.some(s => s.properties?.title === 'Students');
+                // Process the detected spreadsheet
+                try {
+                    const metadata = await sheets.spreadsheets.get({ spreadsheetId });
+                    const hasStudentsSheet = metadata.data.sheets?.some(s => s.properties?.title === 'Students');
 
-                        if (hasStudentsSheet) {
-                            const res = await sheets.spreadsheets.values.get({
-                                spreadsheetId,
-                                range: "'Students'!A2:G",
-                            });
-                            const rows = res.data.values || [];
-                            const students = rows.map(row => ({
-                                id: row[0],
-                                name: row[1] || '',
-                                surname: row[2] || '',
-                                phone: row[3] || '',
-                                parentPhone: row[4] || '',
-                                group: row[5] || '',
-                                status: row[6] || 'Active',
-                                spreadsheetId // Track where it came from
-                            })).filter(s => s.id);
-                            allStudents = allStudents.concat(students);
-                        }
-                    } catch (err: any) {
-                        console.error(`Error reading students from ${spreadsheetId}:`, err);
-                        // Only throw if it's the primary sheet failing
-                        if (spreadsheetId === PRIMARY_SHEET_ID) {
-                            throw new Error(`Primary Sheet Error: ${err.message}`);
-                        }
+                    if (hasStudentsSheet) {
+                        const res = await sheets.spreadsheets.values.get({
+                            spreadsheetId,
+                            range: "'Students'!A2:G",
+                        });
+                        const rows = res.data.values || [];
+                        const students = rows.map(row => ({
+                            id: row[0],
+                            name: row[1] || '',
+                            surname: row[2] || '',
+                            phone: row[3] || '',
+                            parentPhone: row[4] || '',
+                            group: row[5] || '',
+                            status: row[6] || 'Active',
+                            spreadsheetId // Track where it came from
+                        })).filter(s => s.id);
+                        allStudents = students;
                     }
+                } catch (err: any) {
+                    console.error(`Error reading students from ${spreadsheetId}:`, err);
+                    throw new Error(`Primary Sheet Error: ${err.message}`);
                 }
                 return response.status(200).json(allStudents);
             }
@@ -104,23 +100,21 @@ export default async function handler(request: VercelRequest, response: VercelRe
                     'Active'
                 ];
 
-                const targetSpreadsheetId = PRIMARY_SHEET_ID;
-
                 try {
                     // 1. Ensure tab exists
-                    const metadata = await sheets.spreadsheets.get({ spreadsheetId: targetSpreadsheetId });
+                    const metadata = await sheets.spreadsheets.get({ spreadsheetId });
                     const hasStudentsSheet = metadata.data.sheets?.some(s => s.properties?.title === 'Students');
 
                     if (!hasStudentsSheet) {
                         await sheets.spreadsheets.batchUpdate({
-                            spreadsheetId: targetSpreadsheetId,
+                            spreadsheetId,
                             requestBody: {
                                 requests: [{ addSheet: { properties: { title: 'Students' } } }]
                             }
                         });
                         // Add headers
                         await sheets.spreadsheets.values.update({
-                            spreadsheetId: targetSpreadsheetId,
+                            spreadsheetId,
                             range: "'Students'!A1:G1",
                             valueInputOption: 'RAW',
                             requestBody: {
@@ -131,7 +125,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
                     // 2. Append the row
                     await sheets.spreadsheets.values.append({
-                        spreadsheetId: targetSpreadsheetId,
+                        spreadsheetId,
                         range: "'Students'!A2:G",
                         valueInputOption: 'RAW',
                         requestBody: {
@@ -147,7 +141,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
                         parentPhone,
                         group,
                         status: 'Active',
-                        spreadsheetId: targetSpreadsheetId
+                        spreadsheetId
                     });
                 } catch (err: any) {
                     console.error('Final POST Error:', err);
@@ -160,12 +154,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
             }
 
             case 'PUT': {
-                const { id, name, surname, phone, parentPhone, group, status, spreadsheetId } = request.body;
-                if (!id || !spreadsheetId) return response.status(400).json({ error: 'Missing ID or SpreadsheetID' });
+                const { id, name, surname, phone, parentPhone, group, status, spreadsheetId: providedSpreadsheetId } = request.body;
+                const targetSheetId = providedSpreadsheetId || spreadsheetId;
 
                 // Find row index
                 const res = await sheets.spreadsheets.values.get({
-                    spreadsheetId,
+                    spreadsheetId: targetSheetId,
                     range: "'Students'!A:A",
                 });
                 const rows = res.data.values || [];
@@ -174,7 +168,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
                 if (rowIndex === 0) return response.status(404).json({ error: 'Student not found in sheet' });
 
                 await sheets.spreadsheets.values.update({
-                    spreadsheetId,
+                    spreadsheetId: targetSheetId,
                     range: `'Students'!A${rowIndex}:G${rowIndex}`,
                     valueInputOption: 'RAW',
                     requestBody: {
@@ -182,15 +176,15 @@ export default async function handler(request: VercelRequest, response: VercelRe
                     }
                 });
 
-                return response.status(200).json({ id, name, surname, phone, parentPhone, group, status });
+                return response.status(200).json({ id, name, surname, phone, parentPhone, group, status, spreadsheetId: targetSheetId });
             }
 
             case 'DELETE': {
-                const { id, spreadsheetId } = request.body;
-                if (!id || !spreadsheetId) return response.status(400).json({ error: 'Missing ID or SpreadsheetID' });
+                const { id, spreadsheetId: providedSpreadsheetId } = request.body;
+                const targetSheetId = providedSpreadsheetId || spreadsheetId;
 
                 const res = await sheets.spreadsheets.values.get({
-                    spreadsheetId,
+                    spreadsheetId: targetSheetId,
                     range: "'Students'!A:A",
                 });
                 const rows = res.data.values || [];
@@ -199,12 +193,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
                 if (rowIndex === -1) return response.status(404).json({ error: 'Student not found' });
 
                 // Delete row requires batchUpdate
-                const sheetMetadata = await sheets.spreadsheets.get({ spreadsheetId });
+                const sheetMetadata = await sheets.spreadsheets.get({ spreadsheetId: targetSheetId });
                 const studentSheet = sheetMetadata.data.sheets?.find(s => s.properties?.title === 'Students');
                 const sheetId = studentSheet?.properties?.sheetId;
 
                 await sheets.spreadsheets.batchUpdate({
-                    spreadsheetId,
+                    spreadsheetId: targetSheetId,
                     requestBody: {
                         requests: [{
                             deleteDimension: {

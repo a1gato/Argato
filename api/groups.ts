@@ -20,8 +20,26 @@ export default async function handler(request: VercelRequest, response: VercelRe
         const auth = new google.auth.JWT({ email, key: privateKey, scopes: SCOPES });
         const sheets = google.sheets({ version: 'v4', auth });
 
-        // Use the PRIMARY sheet for Groups
-        const spreadsheetId = "1ozJmAzAVf-ISwa6pvtSrwQSkkKpxE5sUpJVTKH_Xw-k";
+        const envIds = (process.env.GOOGLE_SHEET_ID || '').split(',').map(id => id.trim()).filter(Boolean);
+        const configIds = [
+            "1ozJmAzAVf-ISwa6pvtSrwQSkkKpxE5sUpJVTKH_Xw-k",
+            "1_GwFosb5GihN6DFNLQtY2P9vNiBruRm7LO85_WQ-Y8k"
+        ];
+        const allSheetIds = Array.from(new Set([...envIds, ...configIds]));
+
+        async function getSpreadsheetId() {
+            for (const id of allSheetIds) {
+                try {
+                    const meta = await sheets.spreadsheets.get({ spreadsheetId: id });
+                    const title = meta.data.properties?.title || '';
+                    const hasDataTabs = meta.data.sheets?.some(s => ['Users', 'Students', 'Groups', 'TimeSlots'].includes(s.properties?.title || ''));
+                    if (title.toUpperCase().includes('REG') || hasDataTabs) return id;
+                } catch (e) { continue; }
+            }
+            return allSheetIds[0];
+        }
+
+        const spreadsheetId = await getSpreadsheetId();
 
         switch (method) {
             case 'GET': {
