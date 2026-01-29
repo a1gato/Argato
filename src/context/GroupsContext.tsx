@@ -8,6 +8,7 @@ export interface Group {
 
 interface GroupsContextType {
     groups: Group[];
+    loading: boolean;
     addGroup: (name: string, parentId?: string | null) => Promise<string>;
     removeGroup: (id: string) => Promise<void>;
     moveGroup: (groupId: string, newParentId: string | null) => void;
@@ -16,37 +17,69 @@ interface GroupsContextType {
 const GroupsContext = createContext<GroupsContextType | undefined>(undefined);
 
 export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [groups, setGroups] = useState<Group[]>(() => {
-        const saved = localStorage.getItem('fastit_timeslots');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [groups, setGroups] = useState<Group[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const loadGroups = async () => {
+        try {
+            const res = await fetch('/api/timeslots');
+            if (!res.ok) throw new Error('Failed to fetch time slots');
+            const data = await res.json();
+            setGroups(data);
+        } catch (err) {
+            console.error('Error loading groups:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        localStorage.setItem('fastit_timeslots', JSON.stringify(groups));
-    }, [groups]);
+        loadGroups();
+    }, []);
 
-    const addGroup = async (name: string, parentId: string | null = null) => {
-        const newGroup: Group = {
-            id: crypto.randomUUID(),
-            name,
-            parentId
-        };
-        setGroups(prev => [...prev, newGroup]);
-        return newGroup.id;
+    const addGroup = async (name: string, parentId: string | null = null): Promise<string> => {
+        try {
+            const res = await fetch('/api/timeslots', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, parentId })
+            });
+            if (!res.ok) throw new Error('Failed to add group');
+            const newGroup = await res.json();
+            setGroups(prev => [...prev, newGroup]);
+            return newGroup.id;
+        } catch (err) {
+            console.error('Error adding group:', err);
+            // Fallback to local if API fails (optional, based on requirement)
+            return '';
+        }
     };
 
     const removeGroup = async (id: string) => {
-        setGroups(prev => prev.filter(g => g.id !== id && g.parentId !== id));
+        try {
+            const res = await fetch('/api/timeslots', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            if (!res.ok) throw new Error('Failed to delete group');
+            setGroups(prev => prev.filter(g => g.id !== id && g.parentId !== id));
+        } catch (err) {
+            console.error('Error removing group:', err);
+        }
     };
 
     const moveGroup = (groupId: string, newParentId: string | null) => {
+        // Since we don't have a specific MOVE API yet, we'd need to update parentId
+        // The API currently doesn't have a PUT for timeslots. 
+        // For now, update local state.
         setGroups(prev => prev.map(g =>
             g.id === groupId ? { ...g, parentId: newParentId } : g
         ));
     };
 
     return (
-        <GroupsContext.Provider value={{ groups, addGroup, removeGroup, moveGroup }}>
+        <GroupsContext.Provider value={{ groups, loading, addGroup, removeGroup, moveGroup }}>
             {children}
         </GroupsContext.Provider>
     );
