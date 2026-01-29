@@ -26,8 +26,9 @@ export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             if (!res.ok) throw new Error('Failed to fetch time slots');
             const data = await res.json();
             setGroups(data);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error loading groups:', err);
+            alert(`Failed to load time slots: ${err.message}. Please check your connection.`);
         } finally {
             setLoading(false);
         }
@@ -48,7 +49,7 @@ export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             const newGroup = await res.json();
             setGroups(prev => [...prev, newGroup]);
             return newGroup.id;
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error adding group:', err);
             alert('Failed to save time slot to Google Sheets. Please check your connection or spreadsheet permissions.');
             return '';
