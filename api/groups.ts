@@ -22,8 +22,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
         const envIds = (process.env.GOOGLE_SHEET_ID || '').split(',').map(id => id.trim()).filter(Boolean);
         const configIds = [
-            "1ozJmAzAVf-ISwa6pvtSrwQSkkKpxE5sUpJVTKH_Xw-k",
-            "1_GwFosb5GihN6DFNLQtY2P9vNiBruRm7LO85_WQ-Y8k"
+            "1WkHjKplq7Ruf3u1IxvlW3H_MeTbAXejREKRpFPOOaUw"
         ];
         const allSheetIds = Array.from(new Set([...envIds, ...configIds]));
 
