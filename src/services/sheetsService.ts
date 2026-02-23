@@ -17,25 +17,35 @@ export interface Salary {
     total: string;
 }
 
+
+export const SALARY_STORAGE_KEY = 'os_salary_data';
+
 export const fetchSheetData = async (): Promise<{ fines: Fine[]; salaries: Salary[]; debug?: { sheets: string[]; rawRows?: any[][] } }> => {
     // Simulate loading delay for UX
     await new Promise(resolve => setTimeout(resolve, 600));
 
     try {
-        const response = await fetch('/api/sheets');
-        if (!response.ok) {
-            throw new Error('Failed to fetch sheet data');
+        const stored = localStorage.getItem(SALARY_STORAGE_KEY);
+        if (stored) {
+            return JSON.parse(stored);
         }
-        return await response.json();
-    } catch (error) {
-        console.warn("Local Mode Active: Using mock salary data because API is unreachable.");
 
-        // Return structured empty state for Local Mode
+        // Return default empty state if nothing stored
         return {
             fines: [],
             salaries: [],
             debug: {
-                sheets: ['Local Cache (Offline)'],
+                sheets: ['Local Cache'],
+                rawRows: []
+            }
+        };
+    } catch (error) {
+        console.warn("Local Storage Error: Returning empty state.");
+        return {
+            fines: [],
+            salaries: [],
+            debug: {
+                sheets: ['Error Loading Local Data'],
                 rawRows: []
             }
         };

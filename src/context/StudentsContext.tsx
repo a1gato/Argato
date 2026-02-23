@@ -25,6 +25,9 @@ interface StudentsContextType {
 
 const StudentsContext = createContext<StudentsContextType | undefined>(undefined);
 
+
+import { supabase } from '../lib/supabase';
+
 export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { addLog } = useLogs();
     const [students, setStudents] = useState<Student[]>([]);
@@ -34,13 +37,24 @@ export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }
     const loadStudents = async () => {
         setRefreshing(true);
         try {
-            const res = await fetch('/api/students');
-            if (!res.ok) throw new Error('Failed to fetch students');
-            const data = await res.json();
-            setStudents(data);
+            const { data, error } = await supabase
+                .from('students')
+                .select('*');
+
+            if (error) throw error;
+
+            const mapped: Student[] = (data || []).map((s: any) => ({
+                id: s.id,
+                name: s.name,
+                surname: s.surname,
+                phone: s.phone,
+                parentPhone: s.parent_phone,
+                group: s.group_id, // Mapping group_id from DB to group in frontend
+                status: s.status as any
+            }));
+            setStudents(mapped);
         } catch (err: any) {
-            console.error('Error loading students:', err);
-            alert(`Failed to load students: ${err.message}. Please check your connection.`);
+            console.error('Error loading students from Supabase:', err);
         } finally {
             setRefreshing(false);
             setLoading(false);
@@ -53,49 +67,61 @@ export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const addStudent = async (studentData: Omit<Student, 'id' | 'status'>) => {
         try {
-            const res = await fetch('/api/students', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(studentData)
-            });
-            if (!res.ok) {
-                const errorBody = await res.json().catch(() => ({}));
-                throw new Error(JSON.stringify(errorBody) || 'Failed to add student');
-            }
-            const newStudent = await res.json();
-            setStudents(prev => [...prev, newStudent]);
+            const { data, error } = await supabase
+                .from('students')
+                .insert([{
+                    name: studentData.name,
+                    surname: studentData.surname,
+                    phone: studentData.phone,
+                    parent_phone: studentData.parentPhone,
+                    group_id: studentData.group,
+                    status: 'Active'
+                }])
+                .select()
+                .single();
 
-            addLog({
-                type: 'student',
-                action: 'Student Enrolled',
-                description: `New student ${newStudent.name} ${newStudent.surname} was enrolled in ${newStudent.group}.`
-            });
-        } catch (err: any) {
-            console.error('Students API Error:', err);
-            let msg = 'Database Update Failed.';
-            try {
-                const errorData = JSON.parse(err.message);
-                if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
-            } catch (e) {
-                msg += `\n\n${err.message}`;
+            if (error) throw error;
+            if (data) {
+                const newStudent: Student = {
+                    id: data.id,
+                    name: data.name,
+                    surname: data.surname,
+                    phone: data.phone,
+                    parentPhone: data.parent_phone,
+                    group: data.group_id,
+                    status: data.status as any
+                };
+                setStudents(prev => [...prev, newStudent]);
+
+                addLog({
+                    type: 'student',
+                    action: 'Student Enrolled',
+                    description: `New student ${newStudent.name} ${newStudent.surname} was enrolled in ${newStudent.group}.`
+                });
             }
-            alert(msg);
+        } catch (err: any) {
+            console.error('Supabase Error:', err);
+            alert(`Failed to add student: ${err.message}`);
         }
     };
 
     const updateStudent = async (student: Student) => {
         try {
-            const res = await fetch('/api/students', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(student)
-            });
-            if (!res.ok) {
-                const errorBody = await res.json().catch(() => ({}));
-                throw new Error(JSON.stringify(errorBody) || 'Failed to update student');
-            }
-            const updated = await res.json();
-            setStudents(prev => prev.map(s => s.id === updated.id ? updated : s));
+            const { error } = await supabase
+                .from('students')
+                .update({
+                    name: student.name,
+                    surname: student.surname,
+                    phone: student.phone,
+                    parent_phone: student.parentPhone,
+                    group_id: student.group,
+                    status: student.status
+                })
+                .eq('id', student.id);
+
+            if (error) throw error;
+
+            setStudents(prev => prev.map(s => s.id === student.id ? student : s));
 
             addLog({
                 type: 'student',
@@ -103,17 +129,8 @@ export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }
                 description: `Student ${student.name} ${student.surname} records were updated.`
             });
         } catch (err: any) {
-            console.error('Students API Error:', err);
-            let msg = 'Database Update Failed.';
-            try {
-                const errorData = JSON.parse(err.message);
-                if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
-                if (errorData.spreadsheetId) msg += `\n\nSheet ID: ${errorData.spreadsheetId}`;
-                if (errorData.serviceAccount) msg += `\n\nService Email: ${errorData.serviceAccount}`;
-            } catch (e) {
-                msg += `\n\n${err.message}`;
-            }
-            alert(msg);
+            console.error('Supabase Error:', err);
+            alert(`Failed to update student: ${err.message}`);
         }
     };
 
@@ -121,15 +138,12 @@ export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }
         const studentToRemove = students.find(s => s.id === id);
         if (studentToRemove) {
             try {
-                const res = await fetch('/api/students', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, spreadsheetId: (studentToRemove as any).spreadsheetId })
-                });
-                if (!res.ok) {
-                    const errorBody = await res.json().catch(() => ({}));
-                    throw new Error(JSON.stringify(errorBody) || 'Failed to remove student');
-                }
+                const { error } = await supabase
+                    .from('students')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
 
                 setStudents(prev => prev.filter(student => student.id !== id));
                 addLog({
@@ -138,23 +152,32 @@ export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }
                     description: `Student ${studentToRemove.name} ${studentToRemove.surname} was removed from the system.`
                 });
             } catch (err: any) {
-                console.error('Students API Error:', err);
-                let msg = 'Failed to remove student.';
-                try {
-                    const errorData = JSON.parse(err.message);
-                    if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
-                } catch (e) {
-                    msg += `\n\n${err.message}`;
-                }
-                alert(msg);
+                console.error('Supabase Error:', err);
+                alert(`Failed to remove student: ${err.message}`);
             }
         }
     };
 
     const bulkRemoveStudents = async (studentRefs: { id: string }[]) => {
-        // Implement bulk delete by calling removeStudent for each
-        for (const ref of studentRefs) {
-            await removeStudent(ref.id);
+        try {
+            const idsToRemove = studentRefs.map(ref => ref.id);
+            const { error } = await supabase
+                .from('students')
+                .delete()
+                .in('id', idsToRemove);
+
+            if (error) throw error;
+
+            setStudents(prev => prev.filter(s => !idsToRemove.includes(s.id)));
+
+            addLog({
+                type: 'student',
+                action: 'Bulk Removal',
+                description: `${studentRefs.length} students were removed from the system.`
+            });
+        } catch (err: any) {
+            console.error('Supabase Error:', err);
+            alert(`Failed to bulk remove students: ${err.message}`);
         }
     };
 

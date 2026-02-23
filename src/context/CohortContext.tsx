@@ -25,6 +25,9 @@ interface CohortContextType {
 
 const CohortContext = createContext<CohortContextType | undefined>(undefined);
 
+
+import { supabase } from '../lib/supabase';
+
 export const CohortProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const { addLog } = useLogs();
     const [cohorts, setCohorts] = useState<Cohort[]>([]);
@@ -34,12 +37,23 @@ export const CohortProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const loadCohorts = async () => {
         setRefreshing(true);
         try {
-            const res = await fetch('/api/groups');
-            if (!res.ok) throw new Error('Failed to fetch cohorts');
-            const data = await res.json();
-            setCohorts(data);
+            const { data, error } = await supabase
+                .from('groups')
+                .select('*');
+
+            if (error) throw error;
+
+            const mapped: Cohort[] = (data || []).map((c: any) => ({
+                id: c.id,
+                name: c.name,
+                description: c.description,
+                teacherId: c.teacher_id,
+                scheduleType: c.schedule_type as any,
+                timeSlotId: c.timeslot_id
+            }));
+            setCohorts(mapped);
         } catch (err) {
-            console.error('Error loading cohorts:', err);
+            console.error('Error loading cohorts from Supabase:', err);
         } finally {
             setRefreshing(false);
             setLoading(false);
@@ -52,22 +66,38 @@ export const CohortProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const addCohort = async (name: string, description?: string, teacherId: string = '', scheduleType: ScheduleType = 'MWF', timeSlotId: string = '') => {
         try {
-            const res = await fetch('/api/groups', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, description: description || '', teacherId, scheduleType, timeSlotId })
-            });
-            if (!res.ok) throw new Error('Failed to add cohort');
-            const newCohort = await res.json();
-            setCohorts(prev => [...prev, newCohort]);
+            const { data, error } = await supabase
+                .from('groups')
+                .insert([{
+                    name,
+                    description: description || '',
+                    teacher_id: teacherId || null,
+                    schedule_type: scheduleType,
+                    timeslot_id: timeSlotId || null
+                }])
+                .select()
+                .single();
 
-            addLog({
-                type: 'cohort',
-                action: 'Group Created',
-                description: `A new ${scheduleType} group "${name}" was created.`
-            });
+            if (error) throw error;
+            if (data) {
+                const newCohort: Cohort = {
+                    id: data.id,
+                    name: data.name,
+                    description: data.description,
+                    teacherId: data.teacher_id,
+                    scheduleType: data.schedule_type as any,
+                    timeSlotId: data.timeslot_id
+                };
+                setCohorts(prev => [...prev, newCohort]);
+
+                addLog({
+                    type: 'cohort',
+                    action: 'Group Created',
+                    description: `A new ${scheduleType} group "${name}" was created.`
+                });
+            }
         } catch (err) {
-            console.error('Error adding cohort:', err);
+            console.error('Error adding cohort to Supabase:', err);
         }
     };
 
@@ -75,12 +105,12 @@ export const CohortProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         const cohortToRemove = cohorts.find(c => c.id === id);
         if (cohortToRemove) {
             try {
-                const res = await fetch('/api/groups', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id })
-                });
-                if (!res.ok) throw new Error('Failed to delete cohort');
+                const { error } = await supabase
+                    .from('groups')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
 
                 setCohorts(prev => prev.filter(c => c.id !== id));
                 addLog({
@@ -89,23 +119,30 @@ export const CohortProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                     description: `Group "${cohortToRemove.name}" was removed.`
                 });
             } catch (err) {
-                console.error('Error removing cohort:', err);
+                console.error('Error removing cohort from Supabase:', err);
             }
         }
     };
 
     const updateCohort = async (id: string, name: string, description?: string, teacherId: string = '', scheduleType: ScheduleType = 'MWF', timeSlotId: string = '') => {
         try {
-            const res = await fetch('/api/groups', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, name, description: description || '', teacherId, scheduleType, timeSlotId })
-            });
-            if (!res.ok) throw new Error('Failed to update cohort');
-            const updated = await res.json();
+            const { error } = await supabase
+                .from('groups')
+                .update({
+                    name,
+                    description: description || '',
+                    teacher_id: teacherId || null,
+                    schedule_type: scheduleType,
+                    timeslot_id: timeSlotId || null
+                })
+                .eq('id', id);
+
+            if (error) throw error;
+
+            const updated: Cohort = { id, name, description: description || '', teacherId, scheduleType, timeSlotId };
             setCohorts(prev => prev.map(c => c.id === id ? updated : c));
         } catch (err) {
-            console.error('Error updating cohort:', err);
+            console.error('Error updating cohort in Supabase:', err);
         }
     };
 

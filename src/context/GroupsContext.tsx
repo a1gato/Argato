@@ -16,19 +16,29 @@ interface GroupsContextType {
 
 const GroupsContext = createContext<GroupsContextType | undefined>(undefined);
 
+
+import { supabase } from '../lib/supabase';
+
 export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [groups, setGroups] = useState<Group[]>([]);
     const [loading, setLoading] = useState(true);
 
     const loadGroups = async () => {
         try {
-            const res = await fetch('/api/timeslots');
-            if (!res.ok) throw new Error('Failed to fetch time slots');
-            const data = await res.json();
-            setGroups(data);
+            const { data, error } = await supabase
+                .from('timeslots')
+                .select('*');
+
+            if (error) throw error;
+
+            const mapped: Group[] = (data || []).map((g: any) => ({
+                id: g.id,
+                name: g.name,
+                parentId: g.parent_id
+            }));
+            setGroups(mapped);
         } catch (err: any) {
-            console.error('Error loading groups:', err);
-            alert(`Failed to load time slots: ${err.message}. Please check your connection.`);
+            console.error('Error loading groups from Supabase:', err);
         } finally {
             setLoading(false);
         }
@@ -40,56 +50,59 @@ export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const addGroup = async (name: string, parentId: string | null = null): Promise<string> => {
         try {
-            const res = await fetch('/api/timeslots', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, parentId })
-            });
-            if (!res.ok) {
-                const errorBody = await res.json().catch(() => ({}));
-                throw new Error(JSON.stringify(errorBody) || 'Failed to add group');
+            const { data, error } = await supabase
+                .from('timeslots')
+                .insert([{ name, parent_id: parentId }])
+                .select()
+                .single();
+
+            if (error) throw error;
+            if (data) {
+                const newGroup: Group = {
+                    id: data.id,
+                    name: data.name,
+                    parentId: data.parent_id
+                };
+                setGroups(prev => [...prev, newGroup]);
+                return newGroup.id;
             }
-            const newGroup = await res.json();
-            setGroups(prev => [...prev, newGroup]);
-            return newGroup.id;
+            return '';
         } catch (err: any) {
-            console.error('Error adding group:', err);
-            let msg = 'Failed to save time slot to Google Sheets.';
-            try {
-                // Try to extract JSON error if possible
-                const errorData = JSON.parse(err.message);
-                if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
-                if (errorData.spreadsheetId) msg += `\n\nSheet ID: ${errorData.spreadsheetId}`;
-                if (errorData.serviceAccount) msg += `\n\nService Email: ${errorData.serviceAccount}`;
-            } catch (e) {
-                msg += `\n\n${err.message}`;
-            }
-            alert(msg);
+            console.error('Error adding group to Supabase:', err);
             return '';
         }
     };
 
     const removeGroup = async (id: string) => {
         try {
-            const res = await fetch('/api/timeslots', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id })
-            });
-            if (!res.ok) throw new Error('Failed to delete group');
+            const { error } = await supabase
+                .from('timeslots')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+
             setGroups(prev => prev.filter(g => g.id !== id && g.parentId !== id));
         } catch (err) {
-            console.error('Error removing group:', err);
+            console.error('Error removing group from Supabase:', err);
         }
     };
 
-    const moveGroup = (groupId: string, newParentId: string | null) => {
-        // Since we don't have a specific MOVE API yet, we'd need to update parentId
-        // The API currently doesn't have a PUT for timeslots. 
-        // For now, update local state.
-        setGroups(prev => prev.map(g =>
-            g.id === groupId ? { ...g, parentId: newParentId } : g
-        ));
+    const moveGroup = async (groupId: string, newParentId: string | null) => {
+        try {
+            const { error } = await supabase
+                .from('timeslots')
+                .update({ parent_id: newParentId })
+                .eq('id', groupId);
+
+            if (error) throw error;
+
+            setGroups(prev => prev.map(g =>
+                g.id === groupId ? { ...g, parentId: newParentId } : g
+            ));
+        } catch (err) {
+            console.error('Error moving group in Supabase:', err);
+        }
     };
 
     return (
