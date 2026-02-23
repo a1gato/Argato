@@ -52,8 +52,9 @@ export const CohortProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 timeSlotId: c.timeslot_id
             }));
             setCohorts(mapped);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error loading cohorts from Supabase:', err);
+            alert(`Failed to sync groups: ${err.message || 'Unknown error'}`);
         } finally {
             setRefreshing(false);
             setLoading(false);

@@ -55,6 +55,7 @@ export const StudentsProvider: React.FC<{ children: ReactNode }> = ({ children }
             setStudents(mapped);
         } catch (err: any) {
             console.error('Error loading students from Supabase:', err);
+            alert(`Failed to sync students: ${err.message || 'Unknown error'}`);
         } finally {
             setRefreshing(false);
             setLoading(false);

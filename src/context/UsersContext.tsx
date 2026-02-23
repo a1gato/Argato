@@ -53,7 +53,7 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setUsers(mappedUsers);
         } catch (err: any) {
             console.error('Supabase Users Error:', err);
-            alert('Failed to sync users with cloud database.');
+            alert(`Failed to sync users: ${err.message || 'Unknown error'}`);
         } finally {
             setLoading(false);
         }
