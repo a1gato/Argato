@@ -57,7 +57,7 @@ const GridCell = ({ cohorts, users, studentCountMap, isActiveTime }: {
                 ) : (
                     cohorts.map(cohort => {
                         const teacher = users.find(u => u.id === cohort.teacherId);
-                        const studentsCount = studentCountMap[cohort.name] || 0;
+                        const studentsCount = studentCountMap[cohort.id] || 0;
 
                         return (
                             <div key={cohort.id} className={`p-3 rounded-xl border transition-all duration-300 group relative overflow-hidden
@@ -89,9 +89,9 @@ const GridCell = ({ cohorts, users, studentCountMap, isActiveTime }: {
                                     {teacher && (
                                         <div className="flex items-center gap-1.5 text-[9px] text-slate-700 font-medium pt-1 border-t border-slate-50">
                                             <div className="w-4 h-4 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-[8px] font-bold">
-                                                {teacher?.firstName?.[0] || '?'}
+                                                {teacher?.firstName?.[0] || '?'}{teacher?.lastName?.[0] || ''}
                                             </div>
-                                            <span className="truncate">{teacher.firstName}</span>
+                                            <span className="truncate">{teacher.firstName} {teacher.lastName}</span>
                                         </div>
                                     )}
                                 </div>
