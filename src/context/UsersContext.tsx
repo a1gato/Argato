@@ -23,16 +23,7 @@ interface UsersContextType {
 
 const UsersContext = createContext<UsersContextType | undefined>(undefined);
 
-const DEFAULT_ADMIN: User = {
-    id: 'admin-001',
-    employeeId: 'admin',
-    firstName: 'Administrator',
-    lastName: 'User',
-    password: 'admin',
-    role: 'admin',
-    telephone: '000-000-0000',
-    email: 'admin@fastit.com'
-};
+import { supabase } from '../lib/supabase';
 
 export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [users, setUsers] = useState<User[]>([]);
@@ -41,26 +32,28 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const loadUsers = async () => {
         try {
-            const res = await fetch('/api/users');
-            if (!res.ok) throw new Error('Failed to fetch users');
-            const data = await res.json();
+            const { data, error } = await supabase
+                .from('users')
+                .select('*');
 
-            // Ensure at least the default admin exists
-            const hasAdmin = data.some((u: User) => u.employeeId === 'admin');
-            setUsers(hasAdmin ? data : [DEFAULT_ADMIN, ...data]);
+            if (error) throw error;
+
+            // Map DB snake_case to frontend camelCase
+            const mappedUsers: User[] = (data || []).map((u: any) => ({
+                id: u.id,
+                employeeId: u.employee_id,
+                firstName: u.first_name,
+                lastName: u.last_name,
+                password: u.password,
+                role: u.role as any,
+                telephone: u.telephone,
+                email: u.email
+            }));
+
+            setUsers(mappedUsers);
         } catch (err: any) {
-            console.error('Users API Error:', err);
-            let msg = 'User Management Sync Failed.';
-            try {
-                const errorData = JSON.parse(err.message);
-                if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
-                if (errorData.spreadsheetId) msg += `\n\nSheet ID: ${errorData.spreadsheetId}`;
-                if (errorData.serviceAccount) msg += `\n\nService Email: ${errorData.serviceAccount}`;
-            } catch (e) {
-                msg += `\n\n${err.message}`;
-            }
-            alert(msg);
-            setUsers([DEFAULT_ADMIN]); // Keep default admin if loading fails
+            console.error('Supabase Users Error:', err);
+            alert('Failed to sync users with cloud database.');
         } finally {
             setLoading(false);
         }
@@ -72,83 +65,94 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const addUser = async (userData: Omit<User, 'id'>) => {
         try {
-            const res = await fetch('/api/users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(userData)
-            });
-            if (!res.ok) {
-                const errorBody = await res.json().catch(() => ({}));
-                throw new Error(JSON.stringify(errorBody) || 'Failed to add user');
-            }
-            const newUser = await res.json();
-            setUsers(prev => [...prev, newUser]);
+            const { data, error } = await supabase
+                .from('users')
+                .insert([{
+                    employee_id: userData.employeeId,
+                    first_name: userData.firstName,
+                    last_name: userData.lastName,
+                    password: userData.password,
+                    role: userData.role,
+                    telephone: userData.telephone,
+                    email: userData.email
+                }])
+                .select()
+                .single();
 
-            addLog({
-                type: 'user',
-                action: 'User Created',
-                description: `New user ${newUser.firstName} ${newUser.lastName} (${newUser.role}) was added.`
-            });
+            if (error) throw error;
+            if (data) {
+                const newUser: User = {
+                    id: data.id,
+                    employeeId: data.employee_id,
+                    firstName: data.first_name,
+                    lastName: data.last_name,
+                    password: data.password,
+                    role: data.role as any,
+                    telephone: data.telephone,
+                    email: data.email
+                };
+                setUsers(prev => [...prev, newUser]);
+
+                addLog({
+                    type: 'user',
+                    action: 'User Created',
+                    description: `New user ${newUser.firstName} ${newUser.lastName} (${newUser.role}) was added.`
+                });
+            }
         } catch (err: any) {
             console.error('Error creating user:', err);
-            let msg = 'Failed to create user.';
-            try {
-                const errorData = JSON.parse(err.message);
-                if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
-                if (errorData.spreadsheetId) msg += `\n\nSheet ID: ${errorData.spreadsheetId}`;
-                if (errorData.serviceAccount) msg += `\n\nService Email: ${errorData.serviceAccount}`;
-            } catch (e) {
-                msg += `\n\n${err.message}`;
-            }
-            alert(msg);
+            alert(`Failed to create user: ${err.message}`);
         }
     };
 
     const updateUser = async (id: string, updates: Partial<User>) => {
-        const user = users.find(u => u.id === id);
-        if (user) {
-            const updatedUser = { ...user, ...updates };
-            try {
-                const res = await fetch('/api/users', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updatedUser)
+        try {
+            const dbUpdates: any = {};
+            if (updates.employeeId) dbUpdates.employee_id = updates.employeeId;
+            if (updates.firstName) dbUpdates.first_name = updates.firstName;
+            if (updates.lastName) dbUpdates.last_name = updates.lastName;
+            if (updates.password) dbUpdates.password = updates.password;
+            if (updates.role) dbUpdates.role = updates.role;
+            if (updates.telephone) dbUpdates.telephone = updates.telephone;
+            if (updates.email) dbUpdates.email = updates.email;
+
+            const { error } = await supabase
+                .from('users')
+                .update(dbUpdates)
+                .eq('id', id);
+
+            if (error) throw error;
+
+            setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+
+            const user = users.find(u => u.id === id);
+            if (user) {
+                addLog({
+                    type: 'user',
+                    action: 'User Updated',
+                    description: `User ${user.firstName} ${user.lastName} records were updated.`
                 });
-                if (!res.ok) {
-                    const errorBody = await res.json().catch(() => ({}));
-                    throw new Error(JSON.stringify(errorBody) || 'Failed to update user');
-                }
-                const result = await res.json();
-                setUsers(prev => prev.map(u => u.id === id ? result : u));
-            } catch (err: any) {
-                console.error('Error updating user:', err);
-                let msg = 'Failed to update user.';
-                try {
-                    const errorData = JSON.parse(err.message);
-                    if (errorData.error) msg += `\n\nReason: ${errorData.error}`;
-                    if (errorData.spreadsheetId) msg += `\n\nSheet ID: ${errorData.spreadsheetId}`;
-                    if (errorData.serviceAccount) msg += `\n\nService Email: ${errorData.serviceAccount}`;
-                } catch (e) {
-                    msg += `\n\n${err.message}`;
-                }
-                alert(msg);
             }
+        } catch (err: any) {
+            console.error('Error updating user:', err);
+            alert(`Failed to update user: ${err.message}`);
         }
     };
 
     const deleteUser = async (id: string) => {
         const userToDelete = users.find(u => u.id === id);
         if (userToDelete) {
+            if (userToDelete.employeeId === 'admin') {
+                alert('Primary administrator cannot be deleted.');
+                return;
+            }
             try {
-                const res = await fetch('/api/users', {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id })
-                });
-                if (!res.ok) {
-                    const errorBody = await res.json().catch(() => ({}));
-                    throw new Error(JSON.stringify(errorBody) || 'Failed to delete user');
-                }
+                const { error } = await supabase
+                    .from('users')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
 
                 setUsers(prev => prev.filter(u => u.id !== id));
                 addLog({
@@ -158,6 +162,7 @@ export const UsersProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 });
             } catch (err: any) {
                 console.error('Error deleting user:', err);
+                alert(`Failed to delete user: ${err.message}`);
             }
         }
     };

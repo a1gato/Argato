@@ -28,8 +28,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         // 1. Get all Spreadsheet IDs
         const envIds = (process.env.GOOGLE_SHEET_ID || '').split(',').map(id => id.trim()).filter(Boolean);
         const registryIds = [
-            "1ozJmAzAVf-ISwa6pvtSrwQSkkKpxE5sUpJVTKH_Xw-k", // Salohiddinov Muslimbek
-            "1_GwFosb5GihN6DFNLQtY2P9vNiBruRm7LO85_WQ-Y8k"  // New Teacher
+            "1WkHjKplq7Ruf3u1IxvlW3H_MeTbAXejREKRpFPOOaUw"
         ];
 
         const sheetIds = Array.from(new Set([...envIds, ...registryIds]));

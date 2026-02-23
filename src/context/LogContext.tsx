@@ -17,37 +17,81 @@ interface LogContextType {
 
 const LogContext = createContext<LogContextType | undefined>(undefined);
 
-const LOGS_STORAGE_KEY = 'os_system_logs';
+import { supabase } from '../lib/supabase';
 
 export const LogProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [logs, setLogs] = useState<SystemLog[]>(() => {
-        const stored = localStorage.getItem(LOGS_STORAGE_KEY);
-        if (stored) {
-            try {
-                return JSON.parse(stored);
-            } catch (e) {
-                console.error("Failed to parse logs", e);
-                return [];
-            }
+    const [logs, setLogs] = useState<SystemLog[]>([]);
+
+    const loadLogs = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('logs')
+                .select('*')
+                .order('timestamp', { ascending: false })
+                .limit(50);
+
+            if (error) throw error;
+
+            const mapped: SystemLog[] = (data || []).map((l: any) => ({
+                id: l.id,
+                type: l.type as any,
+                action: l.action,
+                description: l.description,
+                timestamp: new Date(l.timestamp).getTime(),
+                user: l.user_id
+            }));
+            setLogs(mapped);
+        } catch (err) {
+            console.error('Error loading logs from Supabase:', err);
         }
-        return [];
-    });
-
-    useEffect(() => {
-        localStorage.setItem(LOGS_STORAGE_KEY, JSON.stringify(logs.slice(0, 50))); // Keep last 50 logs
-    }, [logs]);
-
-    const addLog = (logData: Omit<SystemLog, 'id' | 'timestamp'>) => {
-        const newLog: SystemLog = {
-            ...logData,
-            id: crypto.randomUUID(),
-            timestamp: Date.now()
-        };
-        setLogs(prev => [newLog, ...prev]);
     };
 
-    const clearLogs = () => {
-        setLogs([]);
+    useEffect(() => {
+        loadLogs();
+    }, []);
+
+    const addLog = async (logData: Omit<SystemLog, 'id' | 'timestamp'>) => {
+        try {
+            const { data, error } = await supabase
+                .from('logs')
+                .insert([{
+                    type: logData.type,
+                    action: logData.action,
+                    description: logData.description,
+                    user_id: logData.user || null
+                }])
+                .select()
+                .single();
+
+            if (error) throw error;
+            if (data) {
+                const newLog: SystemLog = {
+                    id: data.id,
+                    type: data.type as any,
+                    action: data.action,
+                    description: data.description,
+                    timestamp: new Date(data.timestamp).getTime(),
+                    user: data.user_id
+                };
+                setLogs(prev => [newLog, ...prev.slice(0, 49)]);
+            }
+        } catch (err) {
+            console.error('Error adding log to Supabase:', err);
+        }
+    };
+
+    const clearLogs = async () => {
+        try {
+            const { error } = await supabase
+                .from('logs')
+                .delete()
+                .neq('type', 'system');
+
+            if (error) throw error;
+            setLogs([]);
+        } catch (err) {
+            console.error('Error clearing logs in Supabase:', err);
+        }
     };
 
     return (

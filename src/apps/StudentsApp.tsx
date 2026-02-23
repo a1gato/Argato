@@ -2,11 +2,15 @@ import React, { useState } from 'react';
 import { useSettings } from '../context/SettingsContext';
 import { useCohorts } from '../context/CohortContext';
 import { useStudents, type Student } from '../context/StudentsContext';
+import { useUsers } from '../context/UsersContext';
+import { useGroups } from '../context/GroupsContext';
 import { CustomSelect } from '../components/CustomSelect';
 
 export const StudentsApp: React.FC = () => {
     const { students: studentSettings } = useSettings();
     const { cohorts } = useCohorts();
+    const { users } = useUsers();
+    const { groups: timeSlots } = useGroups();
     const { students, loading, refreshing, loadStudents, addStudent, updateStudent, removeStudent, bulkRemoveStudents } = useStudents();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState<Student | null>(null);
@@ -42,7 +46,7 @@ export const StudentsApp: React.FC = () => {
             });
         } else {
             setEditingStudent(null);
-            const initialGroup = studentSettings.defaultGroup !== 'None' ? studentSettings.defaultGroup : (cohorts.length > 0 ? (cohorts[0]?.name || '') : '');
+            const initialGroup = studentSettings.defaultGroup !== 'None' ? studentSettings.defaultGroup : (cohorts.length > 0 ? (cohorts[0]?.id || '') : '');
             setFormData({ name: '', surname: '', phone: '', parentPhone: '', group: initialGroup });
         }
         setErrors({ name: '', surname: '', phone: '', parentPhone: '', group: '' });
@@ -72,6 +76,7 @@ export const StudentsApp: React.FC = () => {
         e.preventDefault();
         if (validateForm()) {
             try {
+                console.log('Final Student Form Data:', formData);
                 if (editingStudent) {
                     await updateStudent({ ...editingStudent, ...formData });
                 } else {
@@ -136,7 +141,7 @@ export const StudentsApp: React.FC = () => {
         <div className="p-8 w-full h-full overflow-y-auto bg-slate-50/50 relative">
             <div className="max-w-7xl mx-auto mb-4">
                 <div className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center justify-between shadow-lg shadow-blue-600/20">
-                    <span>🚀 Build v1.1.2 - DEPLOYED</span>
+                    <span>🚀 Build v1.3.0 - DEBUGGING</span>
                     <span className="opacity-70">Live Sync Enabled</span>
                 </div>
             </div>
@@ -264,7 +269,13 @@ export const StudentsApp: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-5">
                                             <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[13px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                                                {student.group}
+                                                {(() => {
+                                                    const cohort = cohorts.find(c => c.id === student.group);
+                                                    if (!cohort) return student.group;
+                                                    const teacher = users.find(u => u.id === cohort.teacherId);
+                                                    const slot = timeSlots.find(s => s.id === cohort.timeSlotId);
+                                                    return `${cohort.name}${teacher ? ` - ${teacher.firstName}` : ''}${slot ? ` (${slot.name})` : ''}`;
+                                                })()}
                                             </span>
                                         </td>
                                         <td className="px-6 py-5">
@@ -332,7 +343,7 @@ export const StudentsApp: React.FC = () => {
                     </span>
                 </div>
                 <div className="flex items-center gap-3">
-                    <span>Build v1.1.3 • STABLE</span>
+                    <span>Build v1.3.0 • DEBUGGING</span>
                 </div>
             </div>
 
@@ -426,7 +437,12 @@ export const StudentsApp: React.FC = () => {
                                     }}
                                     options={[
                                         { label: 'Select a group', value: '' },
-                                        ...cohorts.map(c => ({ label: c.name, value: c.name }))
+                                        ...cohorts.map(c => {
+                                            const teacher = users.find(u => u.id === c.teacherId);
+                                            const slot = timeSlots.find(s => s.id === c.timeSlotId);
+                                            const label = `${c.name}${teacher ? ` - ${teacher.firstName} ${teacher.lastName}` : ''} (${c.scheduleType}${slot ? ` @ ${slot.name}` : ''})`;
+                                            return { label, value: c.id };
+                                        })
                                     ]}
                                     className={errors.group ? 'border-rose-500' : ''}
                                 />

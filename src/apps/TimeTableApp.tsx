@@ -57,7 +57,7 @@ const GridCell = ({ cohorts, users, studentCountMap, isActiveTime }: {
                 ) : (
                     cohorts.map(cohort => {
                         const teacher = users.find(u => u.id === cohort.teacherId);
-                        const studentsCount = studentCountMap[cohort.name] || 0;
+                        const studentsCount = studentCountMap[cohort.id] || 0;
 
                         return (
                             <div key={cohort.id} className={`p-3 rounded-xl border transition-all duration-300 group relative overflow-hidden
@@ -89,9 +89,9 @@ const GridCell = ({ cohorts, users, studentCountMap, isActiveTime }: {
                                     {teacher && (
                                         <div className="flex items-center gap-1.5 text-[9px] text-slate-700 font-medium pt-1 border-t border-slate-50">
                                             <div className="w-4 h-4 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center text-[8px] font-bold">
-                                                {teacher?.firstName?.[0] || '?'}
+                                                {teacher?.firstName?.[0] || '?'}{teacher?.lastName?.[0] || ''}
                                             </div>
-                                            <span className="truncate">{teacher.firstName}</span>
+                                            <span className="truncate">{teacher.firstName} {teacher.lastName}</span>
                                         </div>
                                     )}
                                 </div>
@@ -162,7 +162,7 @@ export const TimeTableApp: React.FC = () => {
                 <div>
                     <h2 className="text-3xl font-light text-slate-900 flex items-center gap-3">
                         Weekly Schedule
-                        <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-bold">v1.6-SYNC</span>
+                        <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-bold">v1.3.0-DEBUG</span>
                     </h2>
                     <p className="text-slate-500 text-sm mt-1">
                         Today is <span className="font-bold text-blue-600">{currentDayName}</span>, {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

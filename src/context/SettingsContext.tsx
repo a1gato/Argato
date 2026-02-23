@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
 interface DashboardSettings {
     showRevenue: boolean;
@@ -38,73 +38,80 @@ interface SettingsContextType {
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-const SETTINGS_STORAGE_KEY = 'os_settings_v1';
+import { supabase } from '../lib/supabase';
 
 export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [dashboard, setDashboard] = useState<DashboardSettings>(() => {
-        const saved = localStorage.getItem(`${SETTINGS_STORAGE_KEY}_dashboard`);
-        return saved ? JSON.parse(saved) : { showRevenue: true, showRecentActivity: true };
-    });
+    const [dashboard, setDashboard] = useState<DashboardSettings>({ showRevenue: true, showRecentActivity: true });
+    const [students, setStudents] = useState<StudentSettings>({ allowBulkActions: false, defaultGroup: 'None' });
+    const [users, setUsers] = useState<UserSettings>({ allowDeletion: true, defaultRole: 'employee' });
+    const [teachers, setTeachers] = useState<TeacherSettings>({ showSpecialization: false });
+    const [salary, setSalary] = useState<SalarySettings>({ showFinesInReport: true });
+    const loadSettings = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('settings')
+                .select('*');
 
-    const [students, setStudents] = useState<StudentSettings>(() => {
-        const saved = localStorage.getItem(`${SETTINGS_STORAGE_KEY}_students`);
-        return saved ? JSON.parse(saved) : { allowBulkActions: false, defaultGroup: 'None' };
-    });
+            if (error) throw error;
 
-    const [users, setUsers] = useState<UserSettings>(() => {
-        const saved = localStorage.getItem(`${SETTINGS_STORAGE_KEY}_users`);
-        return saved ? JSON.parse(saved) : { allowDeletion: true, defaultRole: 'employee' };
-    });
+            if (data) {
+                data.forEach((row: any) => {
+                    switch (row.section) {
+                        case 'dashboard': setDashboard(row.data); break;
+                        case 'students': setStudents(row.data); break;
+                        case 'users': setUsers(row.data); break;
+                        case 'teachers': setTeachers(row.data); break;
+                        case 'salary': setSalary(row.data); break;
+                    }
+                });
+            }
+        } catch (err) {
+            console.error('Error loading settings from Supabase:', err);
+        }
+    };
 
-    const [teachers, setTeachers] = useState<TeacherSettings>(() => {
-        const saved = localStorage.getItem(`${SETTINGS_STORAGE_KEY}_teachers`);
-        return saved ? JSON.parse(saved) : { showSpecialization: false };
-    });
+    useEffect(() => {
+        loadSettings();
+    }, []);
 
-    const [salary, setSalary] = useState<SalarySettings>(() => {
-        const saved = localStorage.getItem(`${SETTINGS_STORAGE_KEY}_salary`);
-        return saved ? JSON.parse(saved) : { showFinesInReport: true };
-    });
-
-    // Persistence effects
-    React.useEffect(() => {
-        localStorage.setItem(`${SETTINGS_STORAGE_KEY}_dashboard`, JSON.stringify(dashboard));
-    }, [dashboard]);
-
-    React.useEffect(() => {
-        localStorage.setItem(`${SETTINGS_STORAGE_KEY}_students`, JSON.stringify(students));
-    }, [students]);
-
-    React.useEffect(() => {
-        localStorage.setItem(`${SETTINGS_STORAGE_KEY}_users`, JSON.stringify(users));
-    }, [users]);
-
-    React.useEffect(() => {
-        localStorage.setItem(`${SETTINGS_STORAGE_KEY}_teachers`, JSON.stringify(teachers));
-    }, [teachers]);
-
-    React.useEffect(() => {
-        localStorage.setItem(`${SETTINGS_STORAGE_KEY}_salary`, JSON.stringify(salary));
-    }, [salary]);
+    const saveSetting = async (section: string, data: any) => {
+        try {
+            await supabase
+                .from('settings')
+                .upsert({ section, data });
+        } catch (err) {
+            console.error(`Error saving ${section} settings:`, err);
+        }
+    };
 
     const updateDashboardSettings = (settings: Partial<DashboardSettings>) => {
-        setDashboard(prev => ({ ...prev, ...settings }));
+        const newSettings = { ...dashboard, ...settings };
+        setDashboard(newSettings);
+        saveSetting('dashboard', newSettings);
     };
 
     const updateStudentSettings = (settings: Partial<StudentSettings>) => {
-        setStudents(prev => ({ ...prev, ...settings }));
+        const newSettings = { ...students, ...settings };
+        setStudents(newSettings);
+        saveSetting('students', newSettings);
     };
 
     const updateUserSettings = (settings: Partial<UserSettings>) => {
-        setUsers(prev => ({ ...prev, ...settings }));
+        const newSettings = { ...users, ...settings };
+        setUsers(newSettings);
+        saveSetting('users', newSettings);
     };
 
     const updateTeacherSettings = (settings: Partial<TeacherSettings>) => {
-        setTeachers(prev => ({ ...prev, ...settings }));
+        const newSettings = { ...teachers, ...settings };
+        setTeachers(newSettings);
+        saveSetting('teachers', newSettings);
     };
 
     const updateSalarySettings = (settings: Partial<SalarySettings>) => {
-        setSalary(prev => ({ ...prev, ...settings }));
+        const newSettings = { ...salary, ...settings };
+        setSalary(newSettings);
+        saveSetting('salary', newSettings);
     };
 
     return (
