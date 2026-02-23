@@ -80,10 +80,15 @@ export const LoginPage: React.FC = () => {
                         {isLoading ? 'Signing in...' : 'Sign In'}
                     </button>
 
-                    <div className="text-center mt-6">
+                    <div className="text-center mt-6 space-y-2">
                         <p className="text-xs text-slate-400">
                             Forgot your credentials? Contact your administrator.
                         </p>
+                        <div className="pt-4 border-t border-slate-50">
+                            <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-1 rounded-full uppercase tracking-widest">
+                                Build v1.3.0 - DEBUGGING
+                            </span>
+                        </div>
                     </div>
                 </form>
             </div>
